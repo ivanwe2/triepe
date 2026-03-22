@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // URL is managed in prisma.config.ts
 }
 
 // --- MODELS ---
@@ -12,7 +11,7 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String   // Hashed password
+  password  String   
   role      Role     @default(USER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -26,30 +25,42 @@ enum Role {
 }
 
 model Product {
-  id          String   @id // e.g., "act001-hoodie"
+  id          String   @id 
   title       String
   description String?  @db.Text
   price       Float
   category    String
-  image       String   // URL to image
-  status      String?  // e.g., "NEW", "SOLD OUT"
+  image       String   
+  status      String?  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
+  variants    ProductVariant[] // <-- INVENTORY RELATION
   orderItems  OrderItem[]
+}
+
+// NEW: Tracks Exact Stock per Size
+model ProductVariant {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  size      String  // "S", "M", "L", "XL", "ONE SIZE"
+  stock     Int     @default(0) // Physical count in warehouse
+  
+  // This ensures we can't accidentally create two "Mediums" for the same hoodie
+  @@unique([productId, size]) 
 }
 
 model Order {
   id              String   @id @default(uuid())
-  userId          String?  // Optional: allowing guest checkout
+  userId          String?  
   user            User?    @relation(fields: [userId], references: [id])
   
-  // Customer Details
   customerName    String
   customerEmail   String
   customerPhone   String
   
-  // Delivery & Payment Details
   deliveryMethod  DeliveryMethod
   paymentMethod   PaymentMethod  @default(CASH_ON_DELIVERY)
   city            String?  
@@ -90,6 +101,6 @@ model OrderItem {
   product    Product @relation(fields: [productId], references: [id])
   
   quantity   Int
-  size       String  // Crucial for streetwear!
-  priceAtBuy Float  // Snapshot of price at time of purchase
+  size       String  
+  priceAtBuy Float  
 }
