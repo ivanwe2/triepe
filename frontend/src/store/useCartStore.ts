@@ -16,6 +16,7 @@ interface CartState {
   isMenuOpen: boolean;
   addItem: (item: CartItem) => void;
   removeItem: (id: string, size: string) => void;
+  clearCart: () => void; // <-- ADDED THIS
   toggleCart: () => void;
   closeCart: () => void;
   toggleMenu: () => void;
@@ -46,6 +47,8 @@ export const useCartStore = create<CartState>()(
       removeItem: (id, size) => set((state) => ({
         items: state.items.filter((item) => !(item.id === id && item.size === size))
       })),
+
+      clearCart: () => set({ items: [] }), // <-- ADDED THIS
 
       toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen, isMenuOpen: false })),
       closeCart: () => set({ isCartOpen: false }),

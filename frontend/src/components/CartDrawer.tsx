@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { X, Trash2 } from "lucide-react";
 import { useCartStore } from '@/store/useCartStore';
+import Link from 'next/link';
 
 export default function CartDrawer() {
   const { isCartOpen, closeCart, items, removeItem } = useCartStore();
@@ -69,9 +70,16 @@ export default function CartDrawer() {
               <span className="text-zinc-400">SUBTOTAL</span>
               <span>${cartTotal} USD</span>
             </div>
-            <button className="w-full py-5 bg-white text-black font-black text-xl tracking-widest uppercase hover:bg-zinc-300 transition-colors">
+            {/* <button className="w-full py-5 bg-white text-black font-black text-xl tracking-widest uppercase hover:bg-zinc-300 transition-colors">
               CHECKOUT
-            </button>
+            </button> */}
+            <Link 
+              href="/checkout"
+              onClick={closeCart} 
+              className="w-full py-5 bg-white text-black font-black text-xl tracking-widest uppercase hover:bg-zinc-300 transition-colors flex justify-center items-center"
+            >
+              CHECKOUT
+            </Link>
           </div>
         )}
       </div>
