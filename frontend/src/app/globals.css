@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  /* This maps the --font-inter variable to the default font-sans class */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  
+  /* This creates our brand new font-koulen class! */
+  --font-koulen: var(--font-koulen), sans-serif;
+}
+
+body {
+  background-color: #3A3A3A;
+  color: white;
+}
