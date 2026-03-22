@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- MODELS ---
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   // Hashed password
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  orders    Order[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Product {
+  id          String   @id // e.g., "act001-hoodie"
+  title       String
+  description String?  @db.Text
+  price       Float
+  category    String
+  image       String   // URL to image
+  status      String?  // e.g., "NEW", "SOLD OUT"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  userId        String?  // Optional: allowing guest checkout
+  user          User?    @relation(fields: [userId], references: [id])
+  status        OrderStatus @default(PENDING)
+  totalAmount   Float
+  shippingAddress Json   // Store address as JSON for simplicity
+  createdAt     DateTime @default(now())
+  
+  items         OrderItem[]
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  
+  quantity  Int
+  size      String  // Crucial for streetwear!
+  priceAtBuy Float  // Snapshot of price at time of purchase
+}
