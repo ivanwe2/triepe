@@ -36,37 +36,6 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-8 md:px-12">
-        <div className="flex items-center">
-          <Link href="/">
-            <img
-              src="/logo.png"
-              alt="Triebe Logo"
-              className="h-12 md:h-20 object-contain cursor-pointer drop-shadow-lg"
-            />
-          </Link>
-        </div>
-
-        {/* Desktop Nav */}
-        <div className="hidden md:flex items-center gap-12 font-medium text-lg z-50">
-          <Link href="/" className="hover:text-gray-300 transition-colors border-b-2 border-transparent hover:border-white pb-1">
-            HOME
-          </Link>
-          <Link href="/store" className="hover:text-gray-300 transition-colors border-b-2 border-transparent hover:border-white pb-1">
-            STORE
-          </Link>
-          <Link href="/cart" className="flex items-center gap-2 hover:text-gray-300 transition-colors border-b-2 border-transparent hover:border-white pb-1">
-            CART <ShoppingCart size={20} />
-          </Link>
-        </div>
-
-        {/* Mobile Nav Toggle */}
-        <div className="md:hidden cursor-pointer z-50">
-          <Menu size={32} />
-        </div>
-      </nav>
-
       {/* Main Content Container */}
       <main className="relative w-full z-10">
         
