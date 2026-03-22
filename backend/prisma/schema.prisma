@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // URL is managed in prisma.config.ts
 }
 
 // --- MODELS ---
@@ -39,33 +40,56 @@ model Product {
 }
 
 model Order {
-  id            String   @id @default(uuid())
-  userId        String?  // Optional: allowing guest checkout
-  user          User?    @relation(fields: [userId], references: [id])
-  status        OrderStatus @default(PENDING)
-  totalAmount   Float
-  shippingAddress Json   // Store address as JSON for simplicity
-  createdAt     DateTime @default(now())
+  id              String   @id @default(uuid())
+  userId          String?  // Optional: allowing guest checkout
+  user            User?    @relation(fields: [userId], references: [id])
   
-  items         OrderItem[]
+  // Customer Details
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  
+  // Delivery & Payment Details
+  deliveryMethod  DeliveryMethod
+  paymentMethod   PaymentMethod  @default(CASH_ON_DELIVERY)
+  city            String?  
+  addressOrOffice String?  
+  notes           String?  @db.Text
+  
+  status          OrderStatus @default(PENDING)
+  totalAmount     Float
+  createdAt       DateTime @default(now())
+  
+  items           OrderItem[]
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CARD_ONLINE
+}
+
+enum DeliveryMethod {
+  SPEEDY
+  ECONT
+  IN_STORE
 }
 
 enum OrderStatus {
   PENDING
-  PAID
+  CONFIRMED
   SHIPPED
   DELIVERED
   CANCELLED
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product @relation(fields: [productId], references: [id])
+  id         String  @id @default(uuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
   
-  quantity  Int
-  size      String  // Crucial for streetwear!
+  quantity   Int
+  size       String  // Crucial for streetwear!
   priceAtBuy Float  // Snapshot of price at time of purchase
 }
