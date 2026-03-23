@@ -49,7 +49,7 @@ export default function CartDrawer() {
                   <p className="text-zinc-400 text-xs tracking-widest mb-auto">SIZE: {item.size} <span className="ml-2">QTY: {item.quantity}</span></p>
                   
                   <div className="flex items-end justify-between mt-4">
-                    <p className="font-bold tracking-wider">${item.price}</p>
+                    <p className="font-bold tracking-wider">€{item.price}</p>
                     <button 
                       onClick={() => removeItem(item.id, item.size)}
                       className="text-zinc-600 hover:text-red-500 transition-colors"
@@ -68,7 +68,7 @@ export default function CartDrawer() {
           <div className="p-6 border-t border-zinc-900 bg-[#0a0a0a]">
             <div className="flex justify-between items-center mb-6 text-lg tracking-widest font-bold uppercase">
               <span className="text-zinc-400">SUBTOTAL</span>
-              <span>${cartTotal} USD</span>
+              <span>€{cartTotal} EUR</span>
             </div>
             {/* <button className="w-full py-5 bg-white text-black font-black text-xl tracking-widest uppercase hover:bg-zinc-300 transition-colors">
               CHECKOUT

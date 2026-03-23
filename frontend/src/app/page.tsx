@@ -107,7 +107,7 @@ export default async function LandingPage() {
                         {product.title}
                       </span>
                       <span className="text-zinc-400 tracking-widest font-bold">
-                        ${product.price.toFixed(2)}
+                        €{product.price.toFixed(2)}
                       </span>
                     </div>
 

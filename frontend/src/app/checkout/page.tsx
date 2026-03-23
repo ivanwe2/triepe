@@ -321,7 +321,7 @@ export default function CheckoutPage() {
                       {item.quantity}
                     </p>
                     <p className="font-bold tracking-wider mt-auto">
-                      ${item.price}
+                      €{item.price}
                     </p>
                   </div>
                 </div>
@@ -331,17 +331,17 @@ export default function CheckoutPage() {
             <div className="border-t border-zinc-800 pt-6 space-y-4 text-sm tracking-widest uppercase">
               <div className="flex justify-between text-zinc-400">
                 <span>SUBTOTAL</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>€{subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-zinc-400">
                 <span>SHIPPING ({deliveryMethod})</span>
                 <span>
-                  {shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`}
+                  {shippingCost === 0 ? "FREE" : `€${shippingCost.toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between text-white font-bold text-lg pt-4 border-t border-zinc-800">
                 <span>TOTAL</span>
-                <span>${total.toFixed(2)}</span>
+                <span>€{total.toFixed(2)}</span>
               </div>
             </div>
 

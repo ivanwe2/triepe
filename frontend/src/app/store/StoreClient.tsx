@@ -109,7 +109,7 @@ export default function StoreClient({
               </h3>
               <div className="flex justify-between items-center mt-1">
                 <span className="text-zinc-400 text-sm tracking-widest">
-                  USD ${product.price.toFixed(2)}
+                  EUR €{product.price.toFixed(2)}
                 </span>
                 <span className="text-white text-sm font-bold tracking-widest opacity-0 group-hover:opacity-100 transition-opacity transform translate-y-2 group-hover:translate-y-0 duration-300">
                   + VIEW ITEM

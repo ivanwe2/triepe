@@ -143,7 +143,7 @@ export default function OrderDetailsPage() {
                         <p>SIZE: <span className="text-zinc-300">{item.size}</span></p>
                         <p>QTY: <span className="text-zinc-300">{item.quantity}</span></p>
                       </div>
-                      <p className="font-bold tracking-wider text-white">${(item.priceAtBuy || 0).toFixed(2)}</p>
+                      <p className="font-bold tracking-wider text-white">€{(item.priceAtBuy || 0).toFixed(2)}</p>
                     </div>
                   </div>
                 ))}
@@ -154,15 +154,15 @@ export default function OrderDetailsPage() {
                <div className="w-full max-w-xs space-y-4 text-sm tracking-widest uppercase">
                   <div className="flex justify-between text-zinc-500">
                     <span>SUBTOTAL</span>
-                    <span>${(order.totalAmount - (order.deliveryMethod === 'IN_STORE' ? 0 : 6.50)).toFixed(2)}</span>
+                    <span>€{(order.totalAmount - (order.deliveryMethod === 'IN_STORE' ? 0 : 6.50)).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-zinc-500">
                     <span>SHIPPING</span>
-                    <span>{order.deliveryMethod === 'IN_STORE' ? 'FREE' : '$6.50'}</span>
+                    <span>{order.deliveryMethod === 'IN_STORE' ? 'FREE' : '€6.50'}</span>
                   </div>
                   <div className="flex justify-between text-white font-bold text-lg pt-4 border-t border-zinc-900">
                     <span>TOTAL</span>
-                    <span>${order.totalAmount.toFixed(2)}</span>
+                    <span>€{order.totalAmount.toFixed(2)}</span>
                   </div>
                </div>
             </div>

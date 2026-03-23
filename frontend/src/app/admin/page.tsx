@@ -163,7 +163,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-zinc-500">{order.customerEmail}</p>
                       </td>
                       <td className="p-6 font-bold text-white">
-                        ${order.totalAmount.toFixed(2)}
+                        €{order.totalAmount.toFixed(2)}
                       </td>
                       <td className="p-6">
                          <span className={`px-2 py-1 text-xs font-black tracking-widest uppercase ${
@@ -259,7 +259,7 @@ export default function AdminDashboard() {
                             </div>
                           </td>
                           <td className="p-6 text-white font-bold">
-                            ${product.price.toFixed(2)}
+                            €{product.price.toFixed(2)}
                           </td>
                           <td className="p-6">
                             <span className="px-2 py-1 bg-zinc-800 text-xs text-zinc-300 font-bold uppercase">

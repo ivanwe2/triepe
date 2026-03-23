@@ -133,7 +133,7 @@ export default function EditProductPage() {
             </div>
 
             <div>
-              <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">Price (USD)</label>
+              <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">Price (EUR)</label>
               <input type="number" required min="0" step="0.01" value={price} onChange={e => setPrice(e.target.value)} className="w-full bg-zinc-900 border border-zinc-800 p-4 text-white focus:border-white transition-colors tracking-wider text-sm" />
             </div>
 

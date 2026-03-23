@@ -101,7 +101,7 @@ export default async function ProductDetailsPage({ params }: Props) {
             </h1>
 
             <p className="text-2xl font-medium tracking-widest text-zinc-300 mb-8">
-              ${product.price.toFixed(2)} USD
+              €{product.price.toFixed(2)} EUR
             </p>
 
             <div className="w-full h-[1px] bg-zinc-800 mb-8" />
