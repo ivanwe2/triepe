@@ -1,12 +1,11 @@
 import Link from "next/link";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getProductById } from "@/lib/api";
 import AddToCartSection from "./AddToCartSection";
 import { Metadata } from "next";
+import CloudinaryWrapper from '@/components/ClodinaryWrapper';
 
-// Helper to determine if a Cloudinary URL is a video
 const isVideo = (url: string) => /\.(mp4|webm|ogg|mov)$/i.test(url);
 
 type Props = {
@@ -40,7 +39,6 @@ export default async function ProductDetailsPage({ params }: Props) {
     notFound();
   }
 
-  // Combine the main cover image with the rest of the gallery
   const allMedia = [product.image, ...(product.gallery || [])];
 
   return (
@@ -53,7 +51,6 @@ export default async function ProductDetailsPage({ params }: Props) {
           <ArrowLeft size={16} /> Back to Collection
         </Link>
 
-        {/* The Desktop Layout: Left side scrolls, Right side is sticky */}
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-24 items-start">
           {/* LEFT: Vertical Media Stack */}
           <div className="w-full lg:w-3/5 flex flex-col gap-4">
@@ -64,7 +61,6 @@ export default async function ProductDetailsPage({ params }: Props) {
                   key={`${mediaUrl}-${index}`}
                   className="relative w-full aspect-[4/5] bg-zinc-900 border border-zinc-800"
                 >
-                  {/* Status Badge (Only on the very first image) */}
                   {index === 0 && product.status && (
                     <div className="absolute top-6 left-6 z-20 px-4 py-2 text-sm font-black tracking-widest uppercase bg-white text-black shadow-lg">
                       {product.status}
@@ -81,12 +77,13 @@ export default async function ProductDetailsPage({ params }: Props) {
                       className="w-full h-full object-cover grayscale contrast-125"
                     />
                   ) : (
-                    <Image
+                    <CloudinaryWrapper
                       src={mediaUrl}
                       alt={`${product.title} - View ${index + 1}`}
                       fill
+                      sizes="(max-width: 1024px) 100vw, 60vw"
                       className="object-cover grayscale contrast-125"
-                      priority={index === 0} // Only preload the first image
+                      priority={index === 0}
                     />
                   )}
                 </div>
@@ -114,7 +111,6 @@ export default async function ProductDetailsPage({ params }: Props) {
                 "Archival piece. Heavyweight construction. Refer to size guide for exact measurements."}
             </p>
 
-            {/* Client Component for Size Selection & Add to Cart */}
             <AddToCartSection product={product} />
           </div>
         </div>

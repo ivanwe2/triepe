@@ -164,3 +164,15 @@ export async function createAdminProduct(productPayload: CreateProductPayload, t
   if (!res.ok) throw new Error(data.message || 'Failed to create product');
   return data.data;
 }
+
+export async function deleteAdminProduct(id: string, token: string) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || 'Failed to delete product');
+  }
+  return true;
+}
