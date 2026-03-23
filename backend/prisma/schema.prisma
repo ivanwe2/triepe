@@ -30,7 +30,8 @@ model Product {
   description String?  @db.Text
   price       Float
   category    String
-  image       String   
+  image       String
+  gallery     String[]   
   status      String?  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

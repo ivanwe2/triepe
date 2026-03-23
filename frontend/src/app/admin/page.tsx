@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAdminOrders, Order } from '@/lib/api';
 import { LogOut, Package, Users, RefreshCw, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -149,15 +150,21 @@ export default function AdminDashboard() {
         )}
 
         {activeTab === 'PRODUCTS' && (
-          <div className="flex flex-col items-center justify-center py-24 bg-[#050505] border border-zinc-900 text-zinc-500">
-            <AlertCircle size={48} className="mb-6 opacity-50" />
-            <h2 className="text-2xl font-black tracking-widest uppercase mb-2" style={{ fontFamily: 'var(--font-koulen), Impact, sans-serif' }}>INVENTORY MODULE OFFLINE</h2>
-            <p className="tracking-widest text-sm uppercase text-center max-w-md">
-              The product management interface is awaiting deployment. You can currently manage products directly via the API.
+          <div className="bg-[#050505] border border-zinc-900 p-12 flex flex-col items-center text-center">
+            <h2 className="text-3xl font-black tracking-widest uppercase mb-4" style={{ fontFamily: 'var(--font-koulen), Impact, sans-serif' }}>
+              INVENTORY MANAGEMENT
+            </h2>
+            <p className="text-zinc-500 tracking-widest text-sm uppercase max-w-lg mb-8 leading-relaxed">
+              Use the deployment tool to upload new items to the store. Images and videos are automatically processed and hosted via Cloudinary.
             </p>
+            <Link 
+              href="/admin/products/new"
+              className="px-8 py-4 bg-white text-black font-black tracking-widest uppercase hover:bg-zinc-300 transition-colors flex items-center gap-3"
+            >
+              DEPLOY NEW PRODUCT
+            </Link>
           </div>
         )}
-
       </div>
     </main>
   );
