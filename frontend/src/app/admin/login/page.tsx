@@ -40,11 +40,6 @@ export default function AdminLoginPage() {
 
   return (
     <main className="w-full min-h-screen flex items-center justify-center px-6 pt-24 bg-black">
-      
-      <Link href="/" className="absolute top-10 left-6 md:left-12 flex items-center gap-2 text-zinc-500 hover:text-white transition-colors tracking-widest text-sm font-bold uppercase z-50">
-        <ArrowLeft size={16} /> RETURN TO STORE
-      </Link>
-
       <div className="w-full max-w-md bg-[#050505] border border-zinc-900 p-8 md:p-12 relative z-10">
         <div className="flex flex-col items-center mb-10">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-6">

@@ -1,4 +1,10 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+const isServer = typeof window === 'undefined';
+
+// If on the Server (Docker), use the internal Docker network name ('api').
+// If in the Browser, use the external localhost address.
+const BASE_URL = isServer 
+  ? (process.env.INTERNAL_API_URL || 'http://api:4000') 
+  : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
 const API_URL = `${BASE_URL.replace(/\/$/, '')}/api`; 
 
 // ==========================================
