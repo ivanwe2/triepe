@@ -137,7 +137,6 @@ export default function AdminDashboard() {
         {/* Content Area */}
         {activeTab === "ORDERS" && (
           <div className="bg-[#050505] border border-zinc-900 overflow-x-auto">
-            {/* ... Your existing orders table code ... */}
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-zinc-800 text-zinc-500 text-xs tracking-widest uppercase bg-zinc-900/50">
@@ -145,23 +144,47 @@ export default function AdminDashboard() {
                   <th className="p-6 font-medium">Customer</th>
                   <th className="p-6 font-medium">Total</th>
                   <th className="p-6 font-medium">Status</th>
+                  <th className="p-6 font-medium text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="text-sm tracking-wider">
-                {orders.map((order) => (
-                  <tr key={order.id} className="border-b border-zinc-900">
-                    <td className="p-6 font-mono text-zinc-400 text-xs">
-                      {order.id.split("-")[0].toUpperCase()}
-                    </td>
-                    <td className="p-6 text-white uppercase">
-                      {order.customerName}
-                    </td>
-                    <td className="p-6 font-bold text-white">
-                      ${order.totalAmount.toFixed(2)}
-                    </td>
-                    <td className="p-6 text-yellow-500">{order.status}</td>
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-12 text-center text-zinc-500 uppercase tracking-widest">No orders found.</td>
                   </tr>
-                ))}
+                ) : (
+                  orders.map((order) => (
+                    <tr key={order.id} className="border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors">
+                      <td className="p-6 font-mono text-zinc-400 text-xs">
+                        {order.id.split("-")[0].toUpperCase()}
+                      </td>
+                      <td className="p-6">
+                        <p className="font-bold text-white uppercase">{order.customerName}</p>
+                        <p className="text-xs text-zinc-500">{order.customerEmail}</p>
+                      </td>
+                      <td className="p-6 font-bold text-white">
+                        ${order.totalAmount.toFixed(2)}
+                      </td>
+                      <td className="p-6">
+                         <span className={`px-2 py-1 text-xs font-black tracking-widest uppercase ${
+                           order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' : 
+                           order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-500' : 
+                           'bg-zinc-800 text-zinc-300'
+                         }`}>
+                           {order.status}
+                         </span>
+                      </td>
+                      <td className="p-6 text-right">
+                        <Link 
+                          href={`/admin/orders/${order.id}`}
+                          className="text-xs font-bold tracking-widest uppercase border-b border-zinc-600 text-zinc-400 hover:text-white pb-1 transition-colors"
+                        >
+                          VIEW
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

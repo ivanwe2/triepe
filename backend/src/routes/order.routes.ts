@@ -8,4 +8,6 @@ router.post('/', orderController.createOrder);
 
 router.get('/', requireAuth, requireAdmin, orderController.getOrders);
 
+router.patch('/:id/status', requireAuth, requireAdmin, orderController.updateStatus);
+
 export default router;

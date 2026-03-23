@@ -27,3 +27,29 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({ status: 'error', message: error.message });
   }
 };
+
+export const updateStatus = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ 
+        status: 'error', 
+        message: 'Status is required' 
+      });
+    }
+
+    const updatedOrder = await orderService.updateOrderStatus(id as string, status);
+    
+    res.status(200).json({ 
+      status: 'success', 
+      data: updatedOrder 
+    });
+  } catch (error: any) {
+    res.status(400).json({ 
+      status: 'error', 
+      message: error.message || 'Failed to update order status' 
+    });
+  }
+};

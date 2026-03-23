@@ -39,9 +39,11 @@ export interface Order {
   id: string;
   customerName: string;
   customerEmail: string;
+  customerPhone: string;
   totalAmount: number;
   status: string;
   deliveryMethod: string;
+  city: string;
   createdAt: string;
   items: OrderItem[];
 }
@@ -175,4 +177,21 @@ export async function deleteAdminProduct(id: string, token: string) {
     throw new Error(data.message || 'Failed to delete product');
   }
   return true;
+}
+
+export async function updateAdminOrderStatus(id: string, status: string, token: string) {
+  const res = await fetch(`${API_URL}/orders/${id}/status`, {
+    method: 'PATCH',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` 
+    },
+    body: JSON.stringify({ status })
+  });
+  
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.message || 'Failed to update order status');
+  }
+  return await res.json();
 }
