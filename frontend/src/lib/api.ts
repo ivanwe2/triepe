@@ -1,12 +1,13 @@
 const isServer = typeof window === 'undefined';
 
-// If on the Server (Docker), use the internal Docker network name ('api').
-// If in the Browser, use the external localhost address.
+// 1. If on Server AND in Docker, use INTERNAL_API_URL
+// 2. If on Server in Vercel, fall back to NEXT_PUBLIC_API_URL (GCP)
+// 3. If in Browser, always use NEXT_PUBLIC_API_URL
 const BASE_URL = isServer 
-  ? (process.env.INTERNAL_API_URL || 'http://api:4000') 
+  ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') 
   : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
-const API_URL = `${BASE_URL.replace(/\/$/, '')}/api`; 
 
+const API_URL = `${BASE_URL.replace(/\/$/, '')}/api`;
 // ==========================================
 // CORE DOMAIN INTERFACES
 // ==========================================
