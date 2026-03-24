@@ -8,7 +8,7 @@
     "build": "npx prisma generate && tsc",
     "gcp-build": "npm run build",
     "start": "npx prisma migrate deploy && npx prisma db seed && node dist/src/index.js",
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node --transpile-only prisma/seed.ts"
   },
   "keywords": [],
   "author": "",
