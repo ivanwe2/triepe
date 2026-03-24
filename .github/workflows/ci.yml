@@ -19,6 +19,7 @@ jobs:
       with:
         node-version: '20' # LTS version
         cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
 
     # 1. BACKEND CHECKS
     - name: Install Backend Dependencies
