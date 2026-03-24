@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "npx prisma generate && tsc",
-    "start": "npx prisma migrate deploy && node dist/index.js",
+    "gcp-build": "npm run build",
+    "start": "npx prisma migrate deploy && npx prisma db seed && node dist/src/index.js",
     "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
@@ -24,7 +25,8 @@
     "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@prisma/config": "^7.5.0",
