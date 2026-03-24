@@ -1,0 +1,52 @@
+services:
+  # 1. The PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: triepe_admin
+      POSTGRES_PASSWORD: triepe_secret_password
+      POSTGRES_DB: triepe_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. The Node.js Express Backend
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "4000:4000"
+    environment:
+      DATABASE_URL: postgresql://triepe_admin:triepe_secret_password@db:5432/triepe_db?schema=public
+      PORT: 4000
+      JWT_SECRET: your_super_secret_jwt_key_for_local_dev
+    volumes:
+      - ./backend:/app
+      - /app/node_modules 
+    depends_on:
+      - db
+
+  # 3. The Next.js Frontend
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    environment:
+      # This tells Next.js where to find the backend!
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+      # Required for Next.js hot-reloading inside Docker on some operating systems
+      WATCHPACK_POLLING: "true" 
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next # Prevents Docker from syncing the heavy build folder back to your host machine
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

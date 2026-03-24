@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- MODELS ---
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String   
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  orders    Order[]
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Product {
+  id          String   @id 
+  title       String
+  description String?  @db.Text
+  price       Float
+  category    String
+  image       String
+  gallery     String[]   
+  status      String?  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  variants    ProductVariant[] // <-- INVENTORY RELATION
+  orderItems  OrderItem[]
+}
+
+// NEW: Tracks Exact Stock per Size
+model ProductVariant {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  size      String  // "S", "M", "L", "XL", "ONE SIZE"
+  stock     Int     @default(0) // Physical count in warehouse
+  
+  // This ensures we can't accidentally create two "Mediums" for the same hoodie
+  @@unique([productId, size]) 
+}
+
+model Order {
+  id              String   @id @default(uuid())
+  userId          String?  
+  user            User?    @relation(fields: [userId], references: [id])
+  
+  customerName    String
+  customerEmail   String
+  customerPhone   String
+  
+  deliveryMethod  DeliveryMethod
+  paymentMethod   PaymentMethod  @default(CASH_ON_DELIVERY)
+  city            String?  
+  addressOrOffice String?  
+  notes           String?  @db.Text
+  
+  status          OrderStatus @default(PENDING)
+  totalAmount     Float
+  createdAt       DateTime @default(now())
+  
+  items           OrderItem[]
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CARD_ONLINE
+}
+
+enum DeliveryMethod {
+  SPEEDY
+  ECONT
+  IN_STORE
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model OrderItem {
+  id         String  @id @default(uuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  
+  quantity   Int
+  size       String  
+  priceAtBuy Float  
+}

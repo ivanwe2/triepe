@@ -1,0 +1,48 @@
+name: Triepe CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20' # LTS version
+        cache: 'npm'
+
+    # 1. BACKEND CHECKS
+    - name: Install Backend Dependencies
+      working-directory: ./backend
+      run: npm ci
+
+    - name: Generate Prisma Client
+      working-directory: ./backend
+      run: npx prisma generate
+
+    - name: Build Backend (TypeScript Check)
+      working-directory: ./backend
+      run: npm run build
+
+    # 2. FRONTEND CHECKS
+    - name: Install Frontend Dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build Frontend (Next.js & TypeScript Check)
+      working-directory: ./frontend
+      # Dummy ENV vars so the Next.js build doesn't crash during CI
+      env:
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+        NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: dummy
+        NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET: dummy
+      run: npm run build

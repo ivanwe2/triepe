@@ -1,0 +1,24 @@
+# Use a lightweight Node.js image
+FROM node:20-alpine
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json first to leverage Docker cache
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install dependencies
+RUN npm install
+
+# Generate Prisma Client (needed for DB types)
+RUN npx prisma generate
+
+# The rest of the files will be mounted via docker-compose volumes for hot-reloading
+# So we don't need to COPY . . here for local dev!
+
+# Expose the API port
+EXPOSE 4000
+
+# We will override the command in docker-compose
+CMD ["npm", "run", "dev"]
