@@ -31,11 +31,10 @@ export default function StoreClient({
             style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
           >
             COLLECTION <br />
-            <span className="text-zinc-600">001</span>
+            <span className="text-zinc-600">032</span>
           </h1>
           <p className="mt-4 text-zinc-400 max-w-md text-sm md:text-base tracking-wide uppercase">
-            The inaugural drop. Redefining conventional silhouettes through an
-            industrial lens.
+            The inaugural drop. Redefining conventional streetwear.
           </p>
         </div>
 

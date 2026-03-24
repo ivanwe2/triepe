@@ -18,8 +18,15 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  const adminEmail = 'admin@triepe.com';
-  const adminPassword = 'admin123!'; // Change this later!
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  // SECURITY: Prevent seeding if passwords aren't set in the environment
+  if (!adminEmail || !adminPassword) {
+    console.error("⚠️ [WARNING]: ADMIN_EMAIL or ADMIN_PASSWORD is missing in environment variables.");
+    console.error("Skipping database seed. If this is production, make sure you set these variables!");
+    process.exit(0); // Exit safely without crashing the deployment
+  }
 
   // Check if admin already exists
   const existingAdmin = await prisma.user.findUnique({
@@ -40,12 +47,13 @@ async function main() {
       email: adminEmail,
       password: hashedPassword,
       role: 'ADMIN',
+      // name: 'Triepe Admin' // Added Name for your dashboard UI
     }
   });
 
-  console.log(`✅ Admin created!`);
+  console.log(`✅ Admin created securely!`);
   console.log(`📧 Email: ${adminEmail}`);
-  console.log(`🔑 Password: ${adminPassword}`);
+  console.log(`🔑 Password is secure and hashed.`);
 }
 
 main()
