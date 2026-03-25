@@ -1,40 +1,32 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, TokenPayload } from '../utils/jwt.util';
 
-// Extend the Express Request to include our custom user payload
 export interface AuthRequest extends Request {
   user?: TokenPayload;
 }
 
-/**
- * Middleware to ensure the request has a valid JWT token.
- */
 export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction): void => {
-  const authHeader = req.headers.authorization;
+  // 1. Look for token in cookies FIRST, fallback to Authorization header
+  const token = 
+    req.cookies?.jwt || 
+    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.split(' ')[1] : null);
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // 2. If neither exists, block them
+  if (!token) {
     res.status(401).json({ status: 'error', message: 'Unauthorized: No token provided' });
     return;
   }
 
-  const token = authHeader.split(' ')[1];
-
+  // 3. Verify the token
   try {
-    if (token == undefined) {
-        throw Error("No token.");
-    }
     const decoded = verifyToken(token);
-    req.user = decoded; // Attach user to the request object
+    req.user = decoded; 
     next();
   } catch (error) {
-    res.status(403).json({ status: 'error', message: 'Forbidden: Invalid or expired token' });
+    res.status(401).json({ status: 'error', message: 'Unauthorized: Invalid or expired token' });
   }
 };
 
-/**
- * Middleware to ensure the authenticated user is an ADMIN.
- * MUST be used AFTER requireAuth.
- */
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
   if (!req.user || req.user.role !== 'ADMIN') {
     res.status(403).json({ status: 'error', message: 'Forbidden: Admin access required' });

@@ -39,6 +39,7 @@ services:
     environment:
       # This tells Next.js where to find the backend!
       NEXT_PUBLIC_API_URL: http://localhost:4000
+      INTERNAL_API_URL: http://api:4000
       # Required for Next.js hot-reloading inside Docker on some operating systems
       WATCHPACK_POLLING: "true" 
     volumes:

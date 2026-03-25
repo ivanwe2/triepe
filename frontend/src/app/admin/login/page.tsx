@@ -26,10 +26,6 @@ export default function AdminLoginPage() {
         throw new Error("Unauthorized: Admin access required.");
       }
 
-      // Store the JWT token securely in localStorage
-      localStorage.setItem('triepe_admin_token', data.token);
-      
-      // Redirect to the dashboard
       router.push('/admin');
     } catch (err: any) {
       setError(err.message || 'Invalid credentials');

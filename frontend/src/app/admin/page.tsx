@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { redirect, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -10,6 +10,8 @@ import {
   deleteAdminProduct,
   Order,
   Product,
+  logoutAdmin,
+  verifyAdminSession,
 } from "@/lib/api";
 import {
   LogOut,
@@ -22,7 +24,6 @@ import {
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [token, setToken] = useState("");
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,29 +33,21 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<"ORDERS" | "PRODUCTS">("ORDERS");
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("triepe_admin_token");
-    if (!storedToken) {
-      router.push("/admin/login");
-      return;
-    }
-    setToken(storedToken);
-    fetchDashboardData(storedToken);
+    verifyAdminSession().catch(() => router.push("/admin/login"));
+    fetchDashboardData();
   }, [router]);
 
-  const fetchDashboardData = async (jwt: string) => {
+  const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
-      // Fetch both orders and products simultaneously
       const [ordersData, productsData] = await Promise.all([
-        getAdminOrders(jwt),
-        getAllProducts(), // This is public, so it doesn't need the token
+        getAdminOrders(),
+        getAllProducts(),
       ]);
       setOrders(ordersData);
       setProducts(productsData);
     } catch (err: any) {
       setError("Session expired or unauthorized. Please log in again.");
-      localStorage.removeItem("triepe_admin_token");
-      router.push("/admin/login");
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +62,7 @@ export default function AdminDashboard() {
       return;
 
     try {
-      await deleteAdminProduct(id, token);
+      await deleteAdminProduct(id);
       // Remove from UI
       setProducts(products.filter((p) => p.id !== id));
     } catch (err: any) {
@@ -78,8 +71,8 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("triepe_admin_token");
-    router.push("/admin/login");
+    logoutAdmin();
+    redirect("/");
   };
 
   if (isLoading) {
@@ -150,32 +143,48 @@ export default function AdminDashboard() {
               <tbody className="text-sm tracking-wider">
                 {orders.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-12 text-center text-zinc-500 uppercase tracking-widest">No orders found.</td>
+                    <td
+                      colSpan={5}
+                      className="p-12 text-center text-zinc-500 uppercase tracking-widest"
+                    >
+                      No orders found.
+                    </td>
                   </tr>
                 ) : (
                   orders.map((order) => (
-                    <tr key={order.id} className="border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors">
+                    <tr
+                      key={order.id}
+                      className="border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors"
+                    >
                       <td className="p-6 font-mono text-zinc-400 text-xs">
                         {order.id.split("-")[0].toUpperCase()}
                       </td>
                       <td className="p-6">
-                        <p className="font-bold text-white uppercase">{order.customerName}</p>
-                        <p className="text-xs text-zinc-500">{order.customerEmail}</p>
+                        <p className="font-bold text-white uppercase">
+                          {order.customerName}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          {order.customerEmail}
+                        </p>
                       </td>
                       <td className="p-6 font-bold text-white">
                         €{order.totalAmount.toFixed(2)}
                       </td>
                       <td className="p-6">
-                         <span className={`px-2 py-1 text-xs font-black tracking-widest uppercase ${
-                           order.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' : 
-                           order.status === 'SHIPPED' ? 'bg-blue-500/10 text-blue-500' : 
-                           'bg-zinc-800 text-zinc-300'
-                         }`}>
-                           {order.status}
-                         </span>
+                        <span
+                          className={`px-2 py-1 text-xs font-black tracking-widest uppercase ${
+                            order.status === "PENDING"
+                              ? "bg-yellow-500/10 text-yellow-500"
+                              : order.status === "SHIPPED"
+                                ? "bg-blue-500/10 text-blue-500"
+                                : "bg-zinc-800 text-zinc-300"
+                          }`}
+                        >
+                          {order.status}
+                        </span>
                       </td>
                       <td className="p-6 text-right">
-                        <Link 
+                        <Link
                           href={`/admin/orders/${order.id}`}
                           className="text-xs font-bold tracking-widest uppercase border-b border-zinc-600 text-zinc-400 hover:text-white pb-1 transition-colors"
                         >

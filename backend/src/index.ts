@@ -8,6 +8,7 @@ import { PORT } from './config';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
 import orderRoutes from './routes/order.routes';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 
@@ -17,6 +18,7 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(helmet());
 app.use(express.json());
+app.use(cookieParser());
 
 const allowedOrigins = process.env.NODE_ENV === 'production' 
   ? ['https://triepe.com', 'https://www.triepe.com'] 

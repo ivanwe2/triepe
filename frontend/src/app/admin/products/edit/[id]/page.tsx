@@ -4,14 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
-import { getProductById } from '@/lib/api';
+import { getProductById, updateAdminProduct, verifyAdminSession } from '@/lib/api';
 
 export default function EditProductPage() {
   const router = useRouter();
   const params = useParams();
   const productId = params?.id as string;
   
-  const [token, setToken] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -23,18 +22,13 @@ export default function EditProductPage() {
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('NEW');
   
-  // Inventory States (We track the DB 'id' so we can update specific rows)
   const [variants, setVariants] = useState<{ id?: string, size: string, stock: number }[]>([]);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('triepe_admin_token');
-    if (!storedToken) {
+    verifyAdminSession().catch(() => {
       router.push('/admin/login');
-      return;
-    }
-    setToken(storedToken);
-    
-    // Fetch existing product data
+    });
+
     if (productId) {
       fetchProductData(productId);
     }
@@ -70,34 +64,26 @@ export default function EditProductPage() {
     setError('');
 
     try {
-      // Create a PUT request API call (Requires you to add updateAdminProduct to api.ts)
-      const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '') + '/api';
-      
-      const payload = {
+      // Call our clean API function!
+      await updateAdminProduct(productId, {
         title,
         price: parseFloat(price),
         category,
         description,
-        status: status === 'ACTIVE' ? null : status,
+        status: status === 'ACTIVE' ? null : (status as any),
         variants
-      };
-
-      const res = await fetch(`${API_URL}/products/${productId}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error("Failed to update product");
-      
       alert("PRODUCT UPDATED SUCCESSFULLY!");
       router.push('/admin');
 
     } catch (err: any) {
-      setError(err.message || 'Failed to update product.');
+      // If the API throws a 401 Unauthorized (because the cookie expired), redirect to login
+      if (err.message.includes('Unauthorized') || err.message.includes('token')) {
+        router.push('/admin/login');
+      } else {
+        setError(err.message || 'Failed to update product.');
+      }
     } finally {
       setIsSaving(false);
     }
