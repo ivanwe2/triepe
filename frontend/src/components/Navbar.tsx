@@ -17,7 +17,7 @@ export default function Navbar() {
   const itemCount = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
-    <nav className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-6 py-8 md:px-12 pointer-events-auto">
+    <nav className="absolute top-0 left-0 w-full z-50 flex items-center justify-between px-6 pt-8 !pb-[10px] md:px-12 pointer-events-auto">
       <div className="flex items-center">
         <Link href="/">
           <img

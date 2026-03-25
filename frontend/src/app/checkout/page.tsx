@@ -1,136 +1,137 @@
 "use client";
 
-import React, { useState } from "react";
-import Image from "next/image";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCartStore } from "@/store/useCartStore";
 import {
   ArrowLeft,
-  Lock,
-  Truck,
-  Store,
-  CreditCard,
-  Banknote,
-  Loader2,
   CheckCircle2,
+  Loader2,
+  Truck,
+  AlertCircle,
 } from "lucide-react";
+import { useCartStore } from "@/store/useCartStore";
 import { createOrder } from "@/lib/api";
+import {
+  SHIPPING_METHODS,
+  ShippingMethodId,
+  getShippingOptions,
+} from "@/config/shipping";
 
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, clearCart } = useCartStore();
-
-  // UI States
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [orderSuccess, setOrderSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
 
   // Form State
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [city, setCity] = useState("");
   const [addressOrOffice, setAddressOrOffice] = useState("");
+  const [notes, setNotes] = useState("");
 
-  const [deliveryMethod, setDeliveryMethod] = useState<
-    "SPEEDY" | "ECONT" | "IN_STORE"
-  >("SPEEDY");
-  const [paymentMethod] = useState<"CASH_ON_DELIVERY">("CASH_ON_DELIVERY");
+  // Link to our new centralized shipping ID
+  const [shippingMethodId, setShippingMethodId] =
+    useState<ShippingMethodId>("SPEEDY_OFFICE");
 
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) return null;
+
+  if (items.length === 0 && !success) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 text-center">
+        <h1
+          className="text-4xl font-black tracking-widest uppercase mb-4"
+          style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+        >
+          CART IS EMPTY
+        </h1>
+        <p className="text-zinc-500 tracking-widest uppercase mb-8">
+          You have no items to checkout.
+        </p>
+        <Link
+          href="/store"
+          className="px-8 py-4 bg-white text-black font-bold uppercase tracking-widest hover:bg-zinc-300 transition-colors"
+        >
+          RETURN TO STORE
+        </Link>
+      </div>
+    );
+  }
+
+  // --- PRICING CALCULATIONS ---
   const subtotal = items.reduce(
     (total, item) => total + item.price * item.quantity,
     0,
   );
-  const shippingCost = deliveryMethod === "IN_STORE" ? 0 : 6.5;
-  const total = subtotal + shippingCost;
+  const selectedShipping = SHIPPING_METHODS[shippingMethodId];
+  const shippingCost = selectedShipping.price;
+  const orderTotal = subtotal + shippingCost;
 
-  const handleCheckout = async () => {
-    // Basic frontend validation
-    if (!customerName || !customerPhone || !customerEmail) {
-      setError("Please fill in all contact details.");
-      return;
-    }
-    if (deliveryMethod !== "IN_STORE" && (!city || !addressOrOffice)) {
-      setError("Please provide your City and Courier Office/Address.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError("");
 
     try {
-      // Format the cart items to match what the backend expects
-      const orderItems = items.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-        size: item.size,
-      }));
+      // Map the generic shipping ID to the specific backend enum ('SPEEDY' | 'ECONT' | 'IN_STORE')
+      const backendCourierMethod = selectedShipping.courier as
+        | "SPEEDY"
+        | "ECONT"
+        | "IN_STORE";
 
-      // Call the Node.js API
-      await createOrder({
+      const payload = {
         customerName,
         customerEmail,
         customerPhone,
-        deliveryMethod,
-        paymentMethod,
-        city: deliveryMethod === "IN_STORE" ? "Plovdiv" : city,
-        addressOrOffice:
-          deliveryMethod === "IN_STORE"
-            ? "Triepe Flagship Kapana"
-            : addressOrOffice,
-        items: orderItems,
-      });
+        deliveryMethod: backendCourierMethod,
+        paymentMethod: "CASH_ON_DELIVERY" as const,
+        city,
+        // Prepend context to the address string so the admin knows if it's an office or address
+        addressOrOffice: `[${selectedShipping.name}] ${addressOrOffice}`,
+        notes,
+        items: items.map((item) => ({
+          productId: item.id,
+          quantity: item.quantity,
+          size: item.size,
+        })),
+      };
 
-      // Success!
-      setOrderSuccess(true);
+      await createOrder(payload);
       clearCart();
-      window.scrollTo(0, 0);
+      setSuccess(true);
     } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+      setError(err.message || "Failed to submit order. Please try again.");
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  // SUCCESS SCREEN
-  if (orderSuccess) {
+  if (success) {
     return (
-      <main className="w-full max-w-3xl mx-auto px-6 pt-40 pb-24 min-h-screen flex flex-col items-center text-center">
-        <CheckCircle2 size={80} className="text-white mb-8" />
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 pt-32 text-center">
+        <CheckCircle2 size={64} className="text-green-500 mb-8" />
         <h1
-          className="text-5xl font-black uppercase tracking-tighter mb-4"
+          className="text-5xl font-black tracking-widest uppercase mb-4"
           style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
         >
           ORDER CONFIRMED
         </h1>
-        <p className="text-zinc-400 tracking-widest leading-relaxed mb-12">
-          Thank you for your purchase, {customerName}. <br />
-          We have received your order and are preparing it for shipment via{" "}
-          {deliveryMethod}. <br />A confirmation email has been sent to{" "}
-          {customerEmail}.
+        <p className="text-zinc-400 tracking-widest uppercase max-w-md mx-auto mb-12">
+          Thank you for your purchase. We have received your order and are
+          processing it now.
         </p>
         <Link
           href="/store"
-          className="py-4 px-12 bg-white text-black font-black tracking-widest uppercase hover:bg-zinc-300 transition-colors"
-        >
-          RETURN TO STORE
-        </Link>
-      </main>
-    );
-  }
-
-  // EMPTY CART SCREEN
-  if (items.length === 0) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center pt-32 px-6">
-        <h1
-          className="text-4xl font-black tracking-widest uppercase mb-6"
-          style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
-        >
-          YOUR CART IS EMPTY
-        </h1>
-        <Link
-          href="/store"
-          className="border-b border-white pb-1 tracking-widest hover:text-zinc-400 transition-colors"
+          className="px-8 py-4 bg-white text-black font-bold uppercase tracking-widest hover:bg-zinc-300 transition-colors"
         >
           RETURN TO STORE
         </Link>
@@ -139,228 +140,279 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="w-full max-w-[1400px] mx-auto px-4 md:px-8 pt-32 pb-24 min-h-screen">
-      <Link
-        href="/cart"
-        className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors tracking-widest text-sm font-bold uppercase mb-8"
-      >
-        <ArrowLeft size={16} /> BACK TO CART
-      </Link>
+    <main className="min-h-screen bg-black pt-32 pb-24 px-4 sm:px-8 text-white selection:bg-gray-400 selection:text-black">
+      <div className="max-w-6xl mx-auto">
+        <Link
+          href="/store"
+          className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors tracking-widest text-sm font-bold uppercase mb-8"
+        >
+          <ArrowLeft size={16} /> BACK TO STORE
+        </Link>
 
-      <h1
-        className="text-5xl font-black uppercase tracking-tighter mb-12"
-        style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
-      >
-        SECURE CHECKOUT
-      </h1>
+        <h1
+          className="text-5xl md:text-7xl font-black tracking-widest uppercase mb-12 border-b border-zinc-900 pb-8"
+          style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+        >
+          CHECKOUT
+        </h1>
 
-      {error && (
-        <div className="mb-8 p-4 border border-red-500/50 bg-red-500/10 text-red-500 text-sm tracking-widest font-bold uppercase">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="mb-8 p-4 border border-red-500/50 bg-red-500/10 text-red-500 flex items-start gap-3">
+            <AlertCircle className="shrink-0" />
+            <p className="text-sm font-bold tracking-widest uppercase">
+              {error}
+            </p>
+          </div>
+        )}
 
-      <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
-        {/* LEFT COLUMN: FORMS */}
-        <div className="w-full lg:w-3/5 space-y-12">
-          <section className="space-y-6">
-            <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4">
-              1. Contact Details
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input
-                type="text"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="FULL NAME"
-                className="w-full bg-zinc-900 border border-zinc-800 p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-white transition-colors uppercase tracking-wider text-sm"
-              />
-              <input
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="PHONE NUMBER"
-                className="w-full bg-zinc-900 border border-zinc-800 p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-white transition-colors uppercase tracking-wider text-sm"
-              />
-              <input
-                type="email"
-                value={customerEmail}
-                onChange={(e) => setCustomerEmail(e.target.value)}
-                placeholder="EMAIL ADDRESS"
-                className="w-full md:col-span-2 bg-zinc-900 border border-zinc-800 p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-white transition-colors uppercase tracking-wider text-sm"
-              />
-            </div>
-          </section>
-
-          <section className="space-y-6">
-            <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4">
-              2. Delivery Method
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <button
-                onClick={() => setDeliveryMethod("SPEEDY")}
-                className={`p-4 border flex flex-col items-center gap-3 transition-colors ${deliveryMethod === "SPEEDY" ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-600"}`}
-              >
-                <Truck size={24} />
-                <span className="font-bold tracking-widest text-sm">
-                  SPEEDY
-                </span>
-              </button>
-              <button
-                onClick={() => setDeliveryMethod("ECONT")}
-                className={`p-4 border flex flex-col items-center gap-3 transition-colors ${deliveryMethod === "ECONT" ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-600"}`}
-              >
-                <Truck size={24} />
-                <span className="font-bold tracking-widest text-sm">ECONT</span>
-              </button>
-              <button
-                onClick={() => setDeliveryMethod("IN_STORE")}
-                className={`p-4 border flex flex-col items-center gap-3 transition-colors ${deliveryMethod === "IN_STORE" ? "bg-white text-black border-white" : "bg-zinc-900 text-zinc-500 border-zinc-800 hover:border-zinc-600"}`}
-              >
-                <Store size={24} />
-                <span className="font-bold tracking-widest text-sm">
-                  IN STORE
-                </span>
-              </button>
-            </div>
-
-            {deliveryMethod !== "IN_STORE" ? (
-              <div className="grid grid-cols-1 gap-4 pt-2">
-                <input
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="CITY"
-                  className="w-full bg-zinc-900 border border-zinc-800 p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-white transition-colors uppercase tracking-wider text-sm"
-                />
-                <input
-                  type="text"
-                  value={addressOrOffice}
-                  onChange={(e) => setAddressOrOffice(e.target.value)}
-                  placeholder="COURIER OFFICE NAME OR STREET ADDRESS"
-                  className="w-full bg-zinc-900 border border-zinc-800 p-4 text-white placeholder:text-zinc-600 focus:outline-none focus:border-white transition-colors uppercase tracking-wider text-sm"
-                />
-              </div>
-            ) : (
-              <div className="p-6 bg-zinc-900 border border-zinc-800 text-zinc-400 text-sm tracking-widest leading-relaxed uppercase">
-                Pick up available at our flagship store.
-                <br />
-                Plovdiv, Kapana District, UI. Hristo Dyukmedzhiev 14.
-                <br />
-                Please wait for the confirmation email before arriving.
-              </div>
-            )}
-          </section>
-
-          <section className="space-y-6">
-            <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4">
-              3. Payment
-            </h2>
-            <div className="flex flex-col gap-4">
-              <div className="p-6 border flex items-center justify-between cursor-pointer transition-colors bg-zinc-900 border-white text-white">
-                <div className="flex items-center gap-4">
-                  <Banknote size={24} />
-                  <div>
-                    <h3 className="font-bold tracking-widest uppercase text-sm">
-                      Pay on Delivery
-                    </h3>
-                    <p className="text-xs text-zinc-500 tracking-wider mt-1">
-                      Pay with cash or card upon receiving
-                    </p>
-                  </div>
-                </div>
-                <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center border-white">
-                  <div className="w-2.5 h-2.5 bg-white rounded-full" />
-                </div>
-              </div>
-              <div className="p-6 border border-zinc-900 bg-black/50 flex items-center justify-between opacity-50 cursor-not-allowed">
-                <div className="flex items-center gap-4">
-                  <CreditCard size={24} className="text-zinc-600" />
-                  <div>
-                    <h3 className="font-bold tracking-widest uppercase text-sm text-zinc-600">
-                      Credit / Debit Card
-                    </h3>
-                    <p className="text-xs text-zinc-700 tracking-wider mt-1">
-                      Online payments coming soon
-                    </p>
-                  </div>
-                </div>
-                <Lock size={20} className="text-zinc-700" />
-              </div>
-            </div>
-          </section>
-        </div>
-
-        {/* RIGHT COLUMN: ORDER SUMMARY */}
-        <div className="w-full lg:w-2/5">
-          <div className="bg-zinc-900/50 border border-zinc-800 p-8 sticky top-32">
-            <h2
-              className="text-2xl font-black tracking-widest uppercase mb-8"
-              style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-24">
+          {/* LEFT: CHECKOUT FORM */}
+          <div className="lg:col-span-7">
+            <form
+              id="checkout-form"
+              onSubmit={handleSubmit}
+              className="space-y-12"
             >
-              ORDER SUMMARY
-            </h2>
-
-            <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2">
-              {items.map((item) => (
-                <div key={`${item.id}-${item.size}`} className="flex gap-4">
-                  <div className="relative w-20 h-28 bg-black flex-shrink-0">
-                    <Image
-                      src={item.image}
-                      alt={item.title}
-                      fill
-                      className="object-cover grayscale"
+              {/* CONTACT INFO */}
+              <section>
+                <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4 mb-6 text-zinc-300">
+                  1. Contact Information
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2">
+                    <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm"
                     />
                   </div>
-                  <div className="flex flex-col flex-1 py-1">
-                    <h3 className="text-sm font-bold tracking-widest uppercase leading-tight mb-1">
-                      {item.title}
+                  <div>
+                    <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm"
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* SHIPPING METHOD */}
+              <section>
+                <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4 mb-6 text-zinc-300">
+                  2. Shipping Method (Bulgaria)
+                </h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {getShippingOptions().map((method) => (
+                    <label
+                      key={method.id}
+                      className={`p-4 border cursor-pointer transition-colors flex items-center justify-between ${shippingMethodId === method.id ? "border-white bg-[#050505]" : "border-zinc-800 bg-black hover:border-zinc-600"}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value={method.id}
+                          checked={shippingMethodId === method.id}
+                          onChange={(e) =>
+                            setShippingMethodId(
+                              e.target.value as ShippingMethodId,
+                            )
+                          }
+                          className="w-4 h-4 accent-white bg-black border-zinc-800"
+                        />
+                        <div>
+                          <p className="font-bold tracking-widest uppercase text-sm">
+                            {method.name}
+                          </p>
+                          <p className="text-xs text-zinc-500 tracking-widest uppercase mt-1">
+                            {method.estimatedDays}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="font-bold tracking-widest uppercase text-sm">
+                        {method.price === 0
+                          ? "FREE"
+                          : `€${method.price.toFixed(2)}`}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              {/* DELIVERY ADDRESS */}
+              {shippingMethodId !== "IN_STORE" && (
+                <section>
+                  <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4 mb-6 text-zinc-300">
+                    3. Delivery Details
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">
+                        City / Town
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">
+                        {shippingMethodId.includes("OFFICE")
+                          ? "Courier Office Name or Address"
+                          : "Full Street Address"}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={addressOrOffice}
+                        onChange={(e) => setAddressOrOffice(e.target.value)}
+                        className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm"
+                      />
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* PAYMENT INFO (Informational) */}
+              <section>
+                <h2 className="text-xl font-bold tracking-widest uppercase border-b border-zinc-800 pb-4 mb-6 text-zinc-300">
+                  4. Payment
+                </h2>
+                <div className="p-6 border border-zinc-800 bg-[#050505] flex items-start gap-4 text-zinc-400">
+                  <Truck className="shrink-0 text-white mt-1" size={24} />
+                  <div>
+                    <h3 className="text-white font-bold tracking-widest uppercase mb-2 text-sm">
+                      Cash on Delivery Only
                     </h3>
-                    <p className="text-zinc-500 text-xs tracking-widest">
-                      SIZE: {item.size} <span className="mx-2">|</span> QTY:{" "}
-                      {item.quantity}
-                    </p>
-                    <p className="font-bold tracking-wider mt-auto">
-                      €{item.price}
+                    <p className="text-sm leading-relaxed tracking-wide">
+                      Currently, we only accept payment via Cash on Delivery
+                      (Standard for Bulgaria). You will pay the courier in cash
+                      or by card upon receiving the parcel.
                     </p>
                   </div>
                 </div>
-              ))}
-            </div>
+              </section>
 
-            <div className="border-t border-zinc-800 pt-6 space-y-4 text-sm tracking-widest uppercase">
-              <div className="flex justify-between text-zinc-400">
-                <span>SUBTOTAL</span>
-                <span>€{subtotal.toFixed(2)}</span>
+              <div className="md:col-span-2">
+                <label className="block text-zinc-500 text-xs font-bold tracking-widest uppercase mb-2">
+                  Order Notes (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm resize-none"
+                />
               </div>
-              <div className="flex justify-between text-zinc-400">
-                <span>SHIPPING ({deliveryMethod})</span>
-                <span>
-                  {shippingCost === 0 ? "FREE" : `€${shippingCost.toFixed(2)}`}
-                </span>
-              </div>
-              <div className="flex justify-between text-white font-bold text-lg pt-4 border-t border-zinc-800">
-                <span>TOTAL</span>
-                <span>€{total.toFixed(2)}</span>
-              </div>
-            </div>
+            </form>
+          </div>
 
-            <button
-              onClick={handleCheckout}
-              disabled={isSubmitting}
-              className="w-full mt-10 py-6 bg-white text-black font-black text-xl tracking-widest uppercase hover:bg-zinc-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-3"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" size={24} /> PROCESSING...
-                </>
-              ) : (
-                "CONFIRM ORDER"
-              )}
-            </button>
-            <p className="text-center text-xs text-zinc-600 tracking-widest uppercase mt-4">
-              By confirming, you agree to our Terms of Service.
-            </p>
+          {/* RIGHT: ORDER SUMMARY */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-32 p-8 border border-zinc-800 bg-[#050505]">
+              <h2
+                className="text-2xl font-black tracking-widest uppercase mb-8 border-b border-zinc-800 pb-6"
+                style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+              >
+                SUMMARY
+              </h2>
+
+              {/* Items */}
+              <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                {items.map((item) => (
+                  <div
+                    key={`${item.id}-${item.size}`}
+                    className="flex gap-4"
+                  >
+                    <div className="w-20 h-24 bg-zinc-900 border border-zinc-800 shrink-0 relative overflow-hidden">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                    <div className="flex flex-col flex-1 justify-center">
+                      <h4 className="font-bold tracking-widest uppercase text-sm leading-tight mb-2">
+                        {item.title}
+                      </h4>
+                      <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mb-1">
+                        SIZE: {item.size}
+                      </p>
+                      <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase">
+                        QTY: {item.quantity}
+                      </p>
+                    </div>
+                    <div className="font-bold tracking-widest uppercase text-sm mt-1">
+                      €{(item.price * item.quantity).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-zinc-800 pt-6 space-y-4">
+                <div className="flex justify-between text-sm tracking-widest uppercase text-zinc-400">
+                  <span>Subtotal</span>
+                  <span>€{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm tracking-widest uppercase text-zinc-400">
+                  <span>Shipping</span>
+                  <span>
+                    {shippingCost === 0
+                      ? "FREE"
+                      : `€${shippingCost.toFixed(2)}`}
+                  </span>
+                </div>
+                <div
+                  className="flex justify-between text-2xl font-black tracking-widest uppercase text-white border-t border-zinc-800 pt-6 mt-6"
+                  style={{
+                    fontFamily: "var(--font-koulen), Impact, sans-serif",
+                  }}
+                >
+                  <span>TOTAL</span>
+                  <span>€{orderTotal.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                form="checkout-form"
+                disabled={isLoading}
+                className="w-full mt-10 py-5 bg-white text-black font-black tracking-widest text-lg uppercase hover:bg-zinc-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="animate-spin" /> PROCESSING...
+                  </>
+                ) : (
+                  "PLACE ORDER"
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </div>
