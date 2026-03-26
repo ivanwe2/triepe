@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, X } from "lucide-react";
 import { Product } from "@/lib/api";
 import { CldImage } from "next-cloudinary";
 
@@ -21,17 +21,18 @@ export default function StoreClient({
   initialProducts: Product[];
 }) {
   const [activeCategory, setActiveCategory] = useState("ALL");
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const filteredProducts = initialProducts.filter((product) => {
     if (activeCategory === "ALL") return true;
     if (activeCategory === "NEW DROPS") return product.status === "NEW";
-    return product.category.toUpperCase() === activeCategory;
+    return (product.category || "").toUpperCase() === activeCategory;
   });
 
   return (
     <>
       {/* Header Section */}
-      <div className="mb-16 flex flex-col md:flex-row justify-between items-end gap-8">
+      <div className="mb-8 md:mb-16 flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-8">
         <div>
           <h1
             className="text-6xl md:text-8xl tracking-tighter font-black uppercase text-zinc-100 leading-none"
@@ -45,12 +46,46 @@ export default function StoreClient({
           </p>
         </div>
 
-        <button className="md:hidden flex items-center gap-2 border border-zinc-800 px-4 py-2 text-sm font-bold tracking-widest uppercase">
-          <SlidersHorizontal size={16} /> Filters
+        {/* Mobile Filter Toggle */}
+        <button
+          onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+          className="md:hidden w-full sm:w-auto flex items-center justify-center gap-2 border border-zinc-800 px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors hover:bg-zinc-900"
+        >
+          {isMobileFiltersOpen ? (
+            <X size={16} />
+          ) : (
+            <SlidersHorizontal size={16} />
+          )}
+          {isMobileFiltersOpen ? "Close Filters" : "Filters"}
         </button>
       </div>
 
-      {/* Filter Nav */}
+      {/* Filter Nav (Mobile Expandable) */}
+      {isMobileFiltersOpen && (
+        <div className="md:hidden flex flex-col gap-5 mb-8 border border-zinc-900 p-6 bg-[#050505]">
+          {CATEGORIES.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => {
+                setActiveCategory(cat);
+                setIsMobileFiltersOpen(false); // Auto-close after selection
+              }}
+              className={`text-left text-sm tracking-widest font-bold uppercase transition-colors flex items-center gap-3 ${
+                activeCategory === cat
+                  ? "text-white"
+                  : "text-zinc-600 hover:text-zinc-300"
+              }`}
+            >
+              {activeCategory === cat && (
+                <span className="w-1.5 h-1.5 bg-white rounded-full inline-block" />
+              )}
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Filter Nav (Desktop) */}
       <div className="hidden md:flex flex-wrap gap-8 mb-12 border-b border-zinc-900 pb-4">
         {CATEGORIES.map((cat) => (
           <button
@@ -76,7 +111,7 @@ export default function StoreClient({
             className="group flex flex-col cursor-pointer"
           >
             {/* Image Container */}
-            <div className="relative w-full aspect-[4/5] bg-zinc-900 overflow-hidden mb-5">
+            <div className="relative w-full aspect-[4/5] bg-zinc-900 overflow-hidden mb-5 border border-zinc-900">
               {/* Status Badge */}
               {product.status && (
                 <div
@@ -127,17 +162,21 @@ export default function StoreClient({
         ))}
       </div>
 
+      {/* Empty State */}
       {filteredProducts.length === 0 && (
         <div className="w-full py-32 flex flex-col items-center justify-center border border-zinc-900 border-dashed">
           <h3
-            className="text-2xl font-bold tracking-widest text-zinc-600 uppercase"
+            className="text-xl md:text-2xl font-bold tracking-widest text-zinc-600 uppercase text-center px-4"
             style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
           >
             NO DROPS IN THIS CATEGORY YET
           </h3>
           <button
-            onClick={() => setActiveCategory("ALL")}
-            className="mt-6 border-b border-white pb-1 text-sm tracking-widest hover:text-zinc-400 transition-colors"
+            onClick={() => {
+              setActiveCategory("ALL");
+              setIsMobileFiltersOpen(false);
+            }}
+            className="mt-6 border-b border-white pb-1 text-sm font-bold tracking-widest hover:text-zinc-400 transition-colors uppercase"
           >
             CLEAR FILTERS
           </button>
