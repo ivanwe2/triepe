@@ -312,3 +312,4 @@ export default function OrderDetailsPage() {
     </main>
   );
 }
+// todo sold out logic and the statuses and all that

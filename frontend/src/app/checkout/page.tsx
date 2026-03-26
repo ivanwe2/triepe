@@ -102,6 +102,7 @@ export default function CheckoutPage() {
           productId: item.id,
           quantity: item.quantity,
           size: item.size,
+          price: item.price,
         })),
       };
 
