@@ -14,6 +14,26 @@ export interface CreateOrderPayload {
   items: { productId: string; quantity: number; size: string }[];
 }
 
+/**
+ * Calculates shipping cost based on the method and the address string.
+ * The frontend prepends the method name in brackets, e.g., "[SPEEDY (TO ADDRESS)] ..."
+ */
+const getShippingCost = (method: DeliveryMethod, address: string = ''): number => {
+  if (method === 'IN_STORE') return 0.00;
+
+  const upperAddress = address.toUpperCase();
+  const isAddress = upperAddress.includes('ADDRESS');
+  
+  if (method === 'SPEEDY') {
+    return isAddress ? 4.50 : 3.00;
+  }
+  if (method === 'ECONT') {
+    return isAddress ? 5.00 : 3.50;
+  }
+  
+  return 0.00;
+};
+
 export const createOrder = async (data: CreateOrderPayload) => {
   const result = await prisma.$transaction(async (tx) => {
     let subtotal = 0;
@@ -69,15 +89,16 @@ export const createOrder = async (data: CreateOrderPayload) => {
         productId: product.id,
         quantity: item.quantity,
         size: item.size,
-        priceAtBuy: product.price
+        priceAtBuy: product.price // Using your field name for price history
       });
     }
 
-    // 4. Calculate Shipping
-    const shippingCost = data.deliveryMethod === 'IN_STORE' ? 0 : 6.50;
+    // 4. Calculate Dynamic Shipping
+    // Using the helper to differentiate between Office and Address delivery
+    const shippingCost = getShippingCost(data.deliveryMethod, data.addressOrOffice || '');
     const totalAmount = subtotal + shippingCost;
 
-    // 5. Create the Order Record (Mapping undefined to null to satisfy Prisma)
+    // 5. Create the Order Record
     const newOrder = await tx.order.create({
       data: {
         customerName: data.customerName,
@@ -85,9 +106,9 @@ export const createOrder = async (data: CreateOrderPayload) => {
         customerPhone: data.customerPhone,
         deliveryMethod: data.deliveryMethod,
         paymentMethod: data.paymentMethod,
-        city: data.city || null,                      // FIXED: undefined -> null
-        addressOrOffice: data.addressOrOffice || null, // FIXED: undefined -> null
-        notes: data.notes || null,                    // FIXED: undefined -> null
+        city: data.city || null,
+        addressOrOffice: data.addressOrOffice || null,
+        notes: data.notes || null,
         totalAmount,
         items: {
           create: orderItemsData
@@ -100,8 +121,17 @@ export const createOrder = async (data: CreateOrderPayload) => {
   });
 
   // 6. Fire Emails
-  sendOrderConfirmationToCustomer(data.customerEmail, data.customerName, result.newOrder.id, result.totalAmount).catch(console.error);
-  sendNewOrderAlertToAdmin(result.newOrder.id, data.deliveryMethod).catch(console.error);
+  sendOrderConfirmationToCustomer(
+    data.customerEmail, 
+    data.customerName, 
+    result.newOrder.id, 
+    result.totalAmount
+  ).catch(console.error);
+
+  sendNewOrderAlertToAdmin(
+    result.newOrder.id, 
+    data.deliveryMethod
+  ).catch(console.error);
 
   return result.newOrder;
 };
@@ -117,7 +147,7 @@ export const getAllOrders = async () => {
 };
 
 /**
- * Update Order Status (Admin Only) - e.g., PENDING -> SHIPPED
+ * Update Order Status (Admin Only)
  */
 export const updateOrderStatus = async (id: string, status: OrderStatus) => {
   return await prisma.order.update({

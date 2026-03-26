@@ -1,311 +1,317 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { redirect, useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
-  getAdminOrders,
-  getAllProducts,
-  deleteAdminProduct,
-  Order,
-  Product,
-  logoutAdmin,
-  verifyAdminSession,
-} from "@/lib/api";
-import {
-  LogOut,
   Package,
-  RefreshCw,
-  AlertCircle,
-  Trash2,
+  ShoppingBag,
+  LogOut,
+  ExternalLink,
+  Plus,
   Edit,
+  Trash2,
+  Search,
+  ChevronRight,
+  TrendingUp,
+  Inbox,
+  Truck,
 } from "lucide-react";
+import {
+  getAllProducts,
+  getAdminOrders,
+  deleteAdminProduct,
+  logoutAdmin,
+  Product,
+  Order,
+} from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 export default function AdminDashboard() {
   const router = useRouter();
-
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeTab, setActiveTab] = useState<"products" | "orders">("orders");
   const [products, setProducts] = useState<Product[]>([]);
-
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"ORDERS" | "PRODUCTS">("ORDERS");
 
   useEffect(() => {
-    verifyAdminSession().catch(() => router.push("/admin/login"));
-    fetchDashboardData();
+    const fetchData = async () => {
+      try {
+        const [pData, oData] = await Promise.all([
+          getAllProducts(),
+          getAdminOrders(),
+        ]);
+        setProducts(pData);
+        // Sort orders by newest first
+        setOrders(
+          oData.sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          ),
+        );
+      } catch (err) {
+        console.error("Auth expired or fetch failed");
+        router.push("/admin/login");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, [router]);
 
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      const [ordersData, productsData] = await Promise.all([
-        getAdminOrders(),
-        getAllProducts(),
-      ]);
-      setOrders(ordersData);
-      setProducts(productsData);
-    } catch (err: any) {
-      setError("Session expired or unauthorized. Please log in again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDeleteProduct = async (id: string, title: string) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to delete ${title}? This cannot be undone.`,
-      )
-    )
-      return;
-
+  const handleDeleteProduct = async (id: string) => {
+    if (!confirm("Delete this product?")) return;
     try {
       await deleteAdminProduct(id);
-      // Remove from UI
       setProducts(products.filter((p) => p.id !== id));
     } catch (err: any) {
-      alert(err.message || "Failed to delete product.");
+      alert(err.message);
     }
   };
 
-  const handleLogout = () => {
-    logoutAdmin();
-    redirect("/");
+  const handleLogout = async () => {
+    await logoutAdmin();
+    router.push("/admin/login");
   };
 
-  if (isLoading) {
+  // Stats calculation
+  const totalRevenue = orders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
+
+  if (isLoading)
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center pt-24 text-white">
-        <RefreshCw className="animate-spin mb-4 text-zinc-600" size={32} />
-        <p className="tracking-widest font-bold uppercase text-sm text-zinc-500">
-          INITIALIZING TERMINAL...
-        </p>
+      <div className="min-h-screen bg-black flex items-center justify-center text-white">
+        LOADING...
       </div>
     );
-  }
 
   return (
-    <main className="w-full min-h-screen bg-black pt-32 pb-24 px-4 sm:px-8">
-      <div className="max-w-[1600px] mx-auto">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12 border-b border-zinc-900 pb-8">
-          <div>
-            <h1
-              className="text-5xl font-black tracking-widest uppercase mb-2"
-              style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
-            >
-              SYSTEM TERMINAL
-            </h1>
-            <p className="text-zinc-500 tracking-widest text-sm uppercase flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>{" "}
-              ONLINE & SECURE
-            </p>
-          </div>
+    <div className="min-h-screen bg-black text-white selection:bg-gray-400 selection:text-black">
+      {/* SIDEBAR */}
+      <aside className="fixed left-0 top-0 h-full w-64 bg-[#050505] border-r border-zinc-900 hidden lg:flex flex-col z-50">
+        <div className="p-8 border-b border-zinc-900">
+          <img src="/logo.png" alt="Triepe" className="h-10 object-contain" />
+          <p className="text-[10px] font-black tracking-widest uppercase text-zinc-600 mt-2">
+            ADMIN PANEL v1.0
+          </p>
+        </div>
+
+        <nav className="flex-1 p-6 space-y-4">
+          <button
+            onClick={() => setActiveTab("orders")}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors ${activeTab === "orders" ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}
+          >
+            <Inbox size={18} /> Orders
+            {pendingOrders > 0 && (
+              <span
+                className={`ml-auto w-5 h-5 flex items-center justify-center text-[10px] rounded-full ${activeTab === "orders" ? "bg-black text-white" : "bg-white text-black"}`}
+              >
+                {pendingOrders}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("products")}
+            className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-bold tracking-widest uppercase transition-colors ${activeTab === "products" ? "bg-white text-black" : "text-zinc-500 hover:text-white"}`}
+          >
+            <ShoppingBag size={18} /> Products
+          </button>
+          <Link
+            href="/"
+            target="_blank"
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold tracking-widest uppercase text-zinc-500 hover:text-white transition-colors"
+          >
+            <ExternalLink size={18} /> View Store
+          </Link>
+        </nav>
+
+        <div className="p-6 border-t border-zinc-900">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-sm font-bold tracking-widest uppercase"
+            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold tracking-widest uppercase text-red-500 hover:bg-red-500/10 transition-colors"
           >
-            <LogOut size={16} /> END SESSION
+            <LogOut size={18} /> Logout
           </button>
         </div>
+      </aside>
 
-        {/* Navigation Tabs */}
-        <div className="flex gap-8 mb-12 border-b border-zinc-900">
-          <button
-            onClick={() => setActiveTab("ORDERS")}
-            className={`pb-4 tracking-widest font-bold uppercase text-sm transition-colors border-b-2 ${activeTab === "ORDERS" ? "border-white text-white" : "border-transparent text-zinc-600 hover:text-zinc-300"}`}
-          >
-            ORDERS ({orders.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("PRODUCTS")}
-            className={`pb-4 tracking-widest font-bold uppercase text-sm transition-colors border-b-2 ${activeTab === "PRODUCTS" ? "border-white text-white" : "border-transparent text-zinc-600 hover:text-zinc-300"}`}
-          >
-            INVENTORY ({products.length})
-          </button>
+      {/* MAIN CONTENT */}
+      <main className="lg:ml-64 p-8 md:p-12">
+        {/* Header Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-[#050505] border border-zinc-900 p-8">
+            <p className="text-zinc-500 text-xs font-black tracking-widest uppercase mb-1">
+              Total Revenue
+            </p>
+            <h3
+              className="text-3xl font-black tracking-tighter"
+              style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+            >
+              €{totalRevenue.toFixed(2)}
+            </h3>
+          </div>
+          <div className="bg-[#050505] border border-zinc-900 p-8">
+            <p className="text-zinc-500 text-xs font-black tracking-widest uppercase mb-1">
+              Total Orders
+            </p>
+            <h3
+              className="text-3xl font-black tracking-tighter"
+              style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+            >
+              {orders.length}
+            </h3>
+          </div>
+          <div className="bg-[#050505] border border-zinc-900 p-8 border-l-4 border-l-blue-500">
+            <p className="text-zinc-500 text-xs font-black tracking-widest uppercase mb-1">
+              Pending Drops
+            </p>
+            <h3
+              className="text-3xl font-black tracking-tighter"
+              style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+            >
+              {products.length}
+            </h3>
+          </div>
         </div>
 
-        {/* Content Area */}
-        {activeTab === "ORDERS" && (
-          <div className="bg-[#050505] border border-zinc-900 overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-500 text-xs tracking-widest uppercase bg-zinc-900/50">
-                  <th className="p-6 font-medium">Order ID</th>
-                  <th className="p-6 font-medium">Customer</th>
-                  <th className="p-6 font-medium">Total</th>
-                  <th className="p-6 font-medium">Status</th>
-                  <th className="p-6 font-medium text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm tracking-wider">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="p-12 text-center text-zinc-500 uppercase tracking-widest"
-                    >
-                      No orders found.
-                    </td>
+        {activeTab === "orders" ? (
+          <section>
+            <div className="flex justify-between items-center mb-8">
+              <h2
+                className="text-3xl font-black tracking-widest uppercase"
+                style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+              >
+                RECENT ORDERS
+              </h2>
+            </div>
+
+            <div className="border border-zinc-900 bg-[#050505] overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead>
+                  <tr className="border-b border-zinc-900 text-zinc-500 text-[10px] tracking-widest uppercase bg-zinc-900/30">
+                    <th className="p-4 font-bold">Order ID</th>
+                    <th className="p-4 font-bold">Customer</th>
+                    <th className="p-4 font-bold">Method</th>
+                    <th className="p-4 font-bold">Status</th>
+                    <th className="p-4 font-bold">Total</th>
+                    <th className="p-4 font-bold">Date</th>
+                    <th className="p-4 font-bold"></th>
                   </tr>
-                ) : (
-                  orders.map((order) => (
+                </thead>
+                <tbody className="text-xs font-bold tracking-widest uppercase">
+                  {orders.map((order) => (
                     <tr
                       key={order.id}
-                      className="border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors"
+                      className="border-b border-zinc-900 hover:bg-zinc-900/20 transition-colors"
                     >
-                      <td className="p-6 font-mono text-zinc-400 text-xs">
-                        {order.id.split("-")[0].toUpperCase()}
+                      <td className="p-4 font-black text-white">
+                        #{order.id.slice(0, 8)}
                       </td>
-                      <td className="p-6">
-                        <p className="font-bold text-white uppercase">
-                          {order.customerName}
-                        </p>
-                        <p className="text-xs text-zinc-500">
+                      <td className="p-4">
+                        <p className="text-white">{order.customerName}</p>
+                        <p className="text-zinc-600 text-[10px]">
                           {order.customerEmail}
                         </p>
                       </td>
-                      <td className="p-6 font-bold text-white">
-                        €{order.totalAmount.toFixed(2)}
+                      <td className="p-4 flex items-center gap-2">
+                        <Truck size={14} className="text-zinc-600" />
+                        <span>{order.deliveryMethod}</span>
                       </td>
-                      <td className="p-6">
+                      <td className="p-4">
                         <span
-                          className={`px-2 py-1 text-xs font-black tracking-widest uppercase ${
-                            order.status === "PENDING"
-                              ? "bg-yellow-500/10 text-yellow-500"
-                              : order.status === "SHIPPED"
-                                ? "bg-blue-500/10 text-blue-500"
-                                : "bg-zinc-800 text-zinc-300"
+                          className={`px-2 py-1 text-[10px] border ${
+                            order.status === "COMPLETED"
+                              ? "border-green-500 text-green-500"
+                              : "border-yellow-500 text-yellow-500"
                           }`}
                         >
                           {order.status}
                         </span>
                       </td>
-                      <td className="p-6 text-right">
+                      <td className="p-4 text-white">
+                        €{order.totalAmount.toFixed(2)}
+                      </td>
+                      <td className="p-4 text-zinc-500">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="p-4 text-right">
                         <Link
                           href={`/admin/orders/${order.id}`}
-                          className="text-xs font-bold tracking-widest uppercase border-b border-zinc-600 text-zinc-400 hover:text-white pb-1 transition-colors"
+                          className="text-zinc-500 hover:text-white transition-colors"
                         >
-                          VIEW
+                          <ChevronRight size={20} />
                         </Link>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {activeTab === "PRODUCTS" && (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h2
-                className="text-2xl font-black tracking-widest uppercase"
-                style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
-              >
-                Live Products
-              </h2>
-              <Link
-                href="/admin/products/new"
-                className="px-6 py-3 bg-white text-black font-black tracking-widest uppercase text-sm hover:bg-zinc-300 transition-colors"
-              >
-                + DEPLOY NEW
-              </Link>
-            </div>
-
-            <div className="bg-[#050505] border border-zinc-900 overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-zinc-800 text-zinc-500 text-xs tracking-widest uppercase bg-zinc-900/50">
-                    <th className="p-6 font-medium">Product</th>
-                    <th className="p-6 font-medium">Price</th>
-                    <th className="p-6 font-medium">Status</th>
-                    <th className="p-6 font-medium">Total Stock</th>
-                    <th className="p-6 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm tracking-wider">
-                  {products.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="p-12 text-center text-zinc-500 uppercase"
-                      >
-                        No products deployed.
-                      </td>
-                    </tr>
-                  ) : (
-                    products.map((product) => {
-                      const totalStock =
-                        product.variants?.reduce(
-                          (sum, v) => sum + v.stock,
-                          0,
-                        ) || 0;
-                      return (
-                        <tr
-                          key={product.id}
-                          className="border-b border-zinc-900 hover:bg-zinc-900/30 transition-colors"
-                        >
-                          <td className="p-6 flex items-center gap-4">
-                            <div className="w-12 h-16 relative bg-zinc-800">
-                              <Image
-                                src={product.image}
-                                alt={product.title}
-                                fill
-                                className="object-cover"
-                              />
-                            </div>
-                            <div>
-                              <p className="font-bold text-white uppercase">
-                                {product.title}
-                              </p>
-                              <p className="text-xs text-zinc-500 font-mono">
-                                {product.id}
-                              </p>
-                            </div>
-                          </td>
-                          <td className="p-6 text-white font-bold">
-                            €{product.price.toFixed(2)}
-                          </td>
-                          <td className="p-6">
-                            <span className="px-2 py-1 bg-zinc-800 text-xs text-zinc-300 font-bold uppercase">
-                              {product.status || "ACTIVE"}
-                            </span>
-                          </td>
-                          <td className="p-6 text-zinc-300">
-                            {totalStock} Units
-                          </td>
-                          <td className="p-6">
-                            <div className="flex justify-end gap-4">
-                              <Link
-                                href={`/admin/products/edit/${product.id}`}
-                                className="text-zinc-500 hover:text-white transition-colors"
-                              >
-                                <Edit size={18} />
-                              </Link>
-                              <button
-                                onClick={() =>
-                                  handleDeleteProduct(product.id, product.title)
-                                }
-                                className="text-zinc-500 hover:text-red-500 transition-colors"
-                              >
-                                <Trash2 size={18} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
+        ) : (
+          <section>
+            <div className="flex justify-between items-center mb-8">
+              <h2
+                className="text-3xl font-black tracking-widest uppercase"
+                style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
+              >
+                INVENTORY
+              </h2>
+              <Link
+                href="/admin/products/new"
+                className="flex items-center gap-2 px-6 py-3 bg-white text-black font-black tracking-widest text-sm uppercase transition-colors hover:bg-zinc-300"
+              >
+                <Plus size={18} /> New Drop
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {products.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-[#050505] border border-zinc-900 p-6 flex gap-6 group hover:border-zinc-700 transition-colors"
+                >
+                  <div className="w-24 h-32 bg-zinc-900 border border-zinc-800 shrink-0 relative overflow-hidden">
+                    <img
+                      src={product.image}
+                      className="w-full h-full object-cover grayscale contrast-125 transition-transform duration-500 group-hover:scale-110"
+                      alt={product.title}
+                    />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between">
+                    <div>
+                      <h4 className="font-bold tracking-widest uppercase text-sm mb-1">
+                        {product.title}
+                      </h4>
+                      <p className="text-zinc-500 text-xs font-black tracking-widest mb-2">
+                        €{product.price.toFixed(2)}
+                      </p>
+                      <span
+                        className={`text-[10px] font-black tracking-widest px-2 py-1 uppercase ${product.status === "NEW" ? "bg-white text-black" : "bg-zinc-800 text-zinc-500"}`}
+                      >
+                        {product.status || "STANDARD"}
+                      </span>
+                    </div>
+                    <div className="flex gap-4 mt-4 pt-4 border-t border-zinc-900">
+                      <Link
+                        href={`/admin/products/edit/${product.id}`}
+                        className="text-zinc-500 hover:text-white transition-colors"
+                      >
+                        <Edit size={16} />
+                      </Link>
+                      <button
+                        onClick={() => handleDeleteProduct(product.id)}
+                        className="text-zinc-500 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

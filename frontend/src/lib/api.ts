@@ -49,6 +49,8 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   size: string;
+  price: number; // The price at which the item was bought
+  product?: Product;
 }
 
 export interface Order {
@@ -59,7 +61,9 @@ export interface Order {
   totalAmount: number;
   status: string;
   deliveryMethod: string;
-  city: string;
+  city?: string;
+  addressOrOffice?: string;
+  notes?: string;
   createdAt: string;
   items: OrderItem[];
 }
