@@ -6,7 +6,14 @@ import { SlidersHorizontal } from "lucide-react";
 import { Product } from "@/lib/api";
 import { CldImage } from "next-cloudinary";
 
-const CATEGORIES = ["ALL", "NEW DROPS", "TOPS", "OUTERWEAR", "BOTTOMS"];
+const CATEGORIES = [
+  "ALL",
+  "NEW DROPS",
+  "TOPS",
+  "OUTERWEAR",
+  "BOTTOMS",
+  "OTHER",
+];
 
 export default function StoreClient({
   initialProducts,
@@ -43,6 +50,7 @@ export default function StoreClient({
         </button>
       </div>
 
+      {/* Filter Nav */}
       <div className="hidden md:flex flex-wrap gap-8 mb-12 border-b border-zinc-900 pb-4">
         {CATEGORIES.map((cat) => (
           <button
