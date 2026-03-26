@@ -49,8 +49,10 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   size: string;
-  price: number; // The price at which the item was bought
+  priceAtBuy: number; // The price at which the item was bought
   product?: Product;
+  productTitle?: string; // Added to match the order item rendering
+  productImage?: string; // Added to match the order item rendering
 }
 
 export interface Order {
@@ -62,7 +64,10 @@ export interface Order {
   status: string;
   deliveryMethod: string;
   city?: string;
+  country?: string; // Added to match the delivery info
+  zipCode?: string; // Added to match the delivery info
   addressOrOffice?: string;
+  address?: string; // Standardized address field
   notes?: string;
   createdAt: string;
   items: OrderItem[];
@@ -91,6 +96,8 @@ export interface UpdateProductPayload {
   description?: string;
   status?: "NEW" | "SOLD OUT" | null;
   variants?: ProductVariant[];
+  image?: string;
+  gallery?: string[];
 }
 
 export interface CreateOrderPayload {
@@ -102,7 +109,7 @@ export interface CreateOrderPayload {
   city?: string;
   addressOrOffice?: string;
   notes?: string;
-  items: OrderItem[];
+  items: { productId: string; quantity: number; size: string }[];
 }
 
 // ==========================================
@@ -200,6 +207,17 @@ export async function getAdminOrders(): Promise<Order[]> {
   return data.data;
 }
 
+// FIX: Added the missing getAdminOrderById function
+export async function getAdminOrderById(id: string): Promise<Order> {
+  const res = await fetch(`${getApiUrl()}/orders/${id}`, {
+    credentials: "include",
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Failed to fetch order");
+  return data.data;
+}
+
 export async function createAdminProduct(
   productPayload: CreateProductPayload,
 ): Promise<Product> {
@@ -243,6 +261,7 @@ export async function deleteAdminProduct(id: string) {
   return true;
 }
 
+// FIX: This matches your existing naming
 export async function updateAdminOrderStatus(id: string, status: string) {
   const res = await fetch(`${getApiUrl()}/orders/${id}/status`, {
     method: "PATCH",

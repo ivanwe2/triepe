@@ -67,8 +67,13 @@ model Order {
   
   deliveryMethod  DeliveryMethod
   paymentMethod   PaymentMethod  @default(CASH_ON_DELIVERY)
+  
+  // Address Details
+  country         String?  // <-- Added
   city            String?  
-  addressOrOffice String?  
+  zipCode         String?  // <-- Added
+  address         String?  // <-- Added (Standard address line)
+  addressOrOffice String?  // (Kept for backwards compatibility with Econt/Speedy offices)
   notes           String?  @db.Text
   
   status          OrderStatus @default(PENDING)
@@ -98,13 +103,17 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id         String  @id @default(uuid())
-  orderId    String
-  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId  String
-  product    Product @relation(fields: [productId], references: [id])
+  id           String  @id @default(uuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
   
-  quantity   Int
-  size       String  
-  priceAtBuy Float  
+  quantity     Int
+  size         String  
+  priceAtBuy   Float   
+  
+  // Snapshot of the product at the time of purchase
+  productTitle String? // <-- Added 
+  productImage String? // <-- Added
 }
