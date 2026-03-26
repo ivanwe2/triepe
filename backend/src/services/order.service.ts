@@ -8,16 +8,15 @@ export interface CreateOrderPayload {
   customerPhone: string;
   deliveryMethod: DeliveryMethod;
   paymentMethod: PaymentMethod;
+  country?: string;
   city?: string;
+  zipCode?: string;
+  address?: string;
   addressOrOffice?: string;
   notes?: string;
   items: { productId: string; quantity: number; size: string }[];
 }
 
-/**
- * Calculates shipping cost based on the method and the address string.
- * The frontend prepends the method name in brackets, e.g., "[SPEEDY (TO ADDRESS)] ..."
- */
 const getShippingCost = (method: DeliveryMethod, address: string = ''): number => {
   if (method === 'IN_STORE') return 0.00;
 
@@ -69,7 +68,7 @@ export const createOrder = async (data: CreateOrderPayload) => {
         data: { stock: { decrement: item.quantity } }
       });
 
-      // 3. Auto-update product status if it just sold out globally
+      // 3. Auto-update product status
       const remainingVariants = await tx.productVariant.findMany({
         where: { productId: product.id }
       });
@@ -85,17 +84,19 @@ export const createOrder = async (data: CreateOrderPayload) => {
 
       subtotal += product.price * item.quantity;
       
+      // Save the snapshot of the product!
       orderItemsData.push({
         productId: product.id,
         quantity: item.quantity,
         size: item.size,
-        priceAtBuy: product.price // Using your field name for price history
+        priceAtBuy: product.price,
+        productTitle: product.title, 
+        productImage: product.image  
       });
     }
 
     // 4. Calculate Dynamic Shipping
-    // Using the helper to differentiate between Office and Address delivery
-    const shippingCost = getShippingCost(data.deliveryMethod, data.addressOrOffice || '');
+    const shippingCost = getShippingCost(data.deliveryMethod, data.addressOrOffice || data.address || '');
     const totalAmount = subtotal + shippingCost;
 
     // 5. Create the Order Record
@@ -106,7 +107,10 @@ export const createOrder = async (data: CreateOrderPayload) => {
         customerPhone: data.customerPhone,
         deliveryMethod: data.deliveryMethod,
         paymentMethod: data.paymentMethod,
+        country: data.country || null,
         city: data.city || null,
+        zipCode: data.zipCode || null,
+        address: data.address || null,
         addressOrOffice: data.addressOrOffice || null,
         notes: data.notes || null,
         totalAmount,
@@ -136,9 +140,6 @@ export const createOrder = async (data: CreateOrderPayload) => {
   return result.newOrder;
 };
 
-/**
- * Fetch all orders for the Admin Dashboard
- */
 export const getAllOrders = async () => {
   return await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
@@ -146,9 +147,20 @@ export const getAllOrders = async () => {
   });
 };
 
-/**
- * Update Order Status (Admin Only)
- */
+// FIX: Added the missing getOrderById function
+export const getOrderById = async (id: string) => {
+  const order = await prisma.order.findUnique({
+    where: { id },
+    include: { items: { include: { product: true } } }
+  });
+
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  return order;
+};
+
 export const updateOrderStatus = async (id: string, status: OrderStatus) => {
   return await prisma.order.update({
     where: { id },

@@ -5,7 +5,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
   try {
     const orderData = req.body;
 
-    // Basic Validation
     if (!orderData.customerName || !orderData.customerEmail || !orderData.customerPhone || !orderData.items || orderData.items.length === 0) {
       res.status(400).json({ status: 'error', message: 'Missing required customer details or cart is empty.' });
       return;
@@ -25,6 +24,17 @@ export const getOrders = async (req: Request, res: Response): Promise<void> => {
     res.status(200).json({ status: 'success', data: orders });
   } catch (error: any) {
     res.status(500).json({ status: 'error', message: error.message });
+  }
+};
+
+// FIX: Added the controller method for fetching a single order
+export const getOrderById = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const order = await orderService.getOrderById(id as string);
+    res.status(200).json({ status: 'success', data: order });
+  } catch (error: any) {
+    res.status(404).json({ status: 'error', message: error.message });
   }
 };
 

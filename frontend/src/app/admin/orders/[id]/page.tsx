@@ -1,148 +1,120 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Mail,
-  Phone,
-  Package,
-  Clock,
-  Truck,
   Loader2,
-  CheckCircle,
+  Package,
+  MapPin,
+  User,
+  Truck,
+  Calendar,
+  Hash,
 } from "lucide-react";
-import { getAdminOrders, updateAdminOrderStatus, Order } from "@/lib/api";
+import { getAdminOrderById, updateAdminOrderStatus, Order } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function OrderDetailsPage() {
-  const { id } = useParams();
+  const router = useRouter();
+  const { id } = useParams() as { id: string };
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{
-    text: string;
-    type: "success" | "error";
-  } | null>(null);
 
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const orders = await getAdminOrders();
-        const found = orders.find((o) => o.id === id);
-        if (!found) throw new Error("Order not found");
-        setOrder(found);
-      } catch (err: any) {
-        setStatusMessage({
-          text: err.message || "Failed to load order",
-          type: "error",
-        });
+        const data = await getAdminOrderById(id);
+        setOrder(data);
+      } catch (err) {
+        toast.error("Session expired or order not found.");
+        router.push("/admin/login");
       } finally {
         setIsLoading(false);
       }
     };
     fetchOrder();
-  }, [id]);
+  }, [id, router]);
 
-  const handleStatusUpdate = async (newStatus: string) => {
-    if (!order) return;
+  const handleStatusChange = async (newStatus: string) => {
     setIsUpdating(true);
-    setStatusMessage(null);
-
+    const toastId = toast.loading(`Updating order status to ${newStatus}...`);
     try {
-      // FIX: Ensure we use 'DELIVERED' to match the backend OrderStatus enum
-      await updateAdminOrderStatus(order.id, newStatus);
-
-      // Update local state to reflect the change immediately
+      await updateAdminOrderStatus(id, newStatus);
       setOrder((prev) => (prev ? { ...prev, status: newStatus } : null));
-
-      setStatusMessage({
-        text: `Order status updated to ${newStatus}`,
-        type: "success",
-      });
-
-      // Clear message after 3 seconds
-      setTimeout(() => setStatusMessage(null), 3000);
+      toast.success(`Status updated to ${newStatus}`, { id: toastId });
     } catch (err: any) {
-      console.error("Update failed:", err);
-      setStatusMessage({
-        text: err.message || "Failed to update status",
-        type: "error",
-      });
+      toast.error(err.message || "Failed to update status", { id: toastId });
     } finally {
       setIsUpdating(false);
     }
   };
 
-  if (isLoading)
+  if (isLoading || !order) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Loader2 className="animate-spin text-white" />
+      <div className="min-h-screen bg-black flex items-center justify-center text-white font-bold tracking-widest uppercase">
+        <Loader2 className="animate-spin mr-3" size={24} /> RETRIEVING ORDER
+        DATABANKS...
       </div>
     );
-  if (!order)
-    return (
-      <div className="min-h-screen bg-black text-white p-20 flex flex-col items-center">
-        <p className="mb-4">Order not found.</p>
-        <Link
-          href="/admin"
-          className="text-white underline font-bold tracking-widest uppercase text-xs"
-        >
-          Return to Dashboard
-        </Link>
-      </div>
-    );
+  }
 
-  const subtotal = order.items.reduce((acc, item) => {
-    // FIX: Use priceAtBuy to match your backend service implementation and fallback to product price
-    const itemPrice =
-      (item as any).priceAtBuy || item.price || item.product?.price || 0;
-    return acc + itemPrice * item.quantity;
-  }, 0);
-
+  // FIX: Calculate Subtotal to dynamically get Shipping
+  const subtotal = order.items.reduce(
+    (sum, item) => sum + item.priceAtBuy * item.quantity,
+    0,
+  );
   const shippingCost = Math.max(0, order.totalAmount - subtotal);
 
   return (
-    <main className="min-h-screen bg-black text-white pt-32 pb-24 px-4 md:px-12 selection:bg-gray-400 selection:text-black">
+    <div className="min-h-screen bg-black text-white p-6 md:p-12">
       <div className="max-w-6xl mx-auto">
-        <Link
-          href="/admin"
-          className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors tracking-widest text-sm font-bold uppercase mb-8"
-        >
-          <ArrowLeft size={16} /> BACK TO DASHBOARD
-        </Link>
-
-        {statusMessage && (
-          <div
-            className={`mb-6 p-4 border flex items-center gap-3 animate-in fade-in slide-in-from-top-2 ${
-              statusMessage.type === "success"
-                ? "border-green-500 bg-green-500/10 text-green-500"
-                : "border-red-500 bg-red-500/10 text-red-500"
-            }`}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
+          <Link
+            href="/admin"
+            className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors text-sm font-bold tracking-widest uppercase"
           >
-            <CheckCircle size={18} />
-            <span className="text-xs font-bold tracking-widest uppercase">
-              {statusMessage.text}
-            </span>
-          </div>
-        )}
+            <ArrowLeft size={16} /> Back to Terminal
+          </Link>
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12 border-b border-zinc-900 pb-8">
+          <div className="flex flex-wrap gap-2 bg-[#050505] p-2 border border-zinc-900">
+            {["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"].map((status) => (
+              <button
+                key={status}
+                onClick={() => handleStatusChange(status)}
+                disabled={isUpdating || order.status === status}
+                className={`px-6 py-2 text-[10px] font-black tracking-widest uppercase transition-all ${
+                  order.status === status
+                    ? "bg-white text-black"
+                    : "bg-transparent text-zinc-500 hover:bg-zinc-900 hover:text-white disabled:opacity-50"
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-[#050505] border border-zinc-900 p-8 mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
             <h1
-              className="text-4xl md:text-6xl font-black tracking-widest uppercase mb-2"
+              className="text-4xl md:text-5xl font-black tracking-widest uppercase mb-3 flex items-center gap-4"
               style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
             >
-              ORDER #{order.id.slice(0, 8)}
+              <Hash size={32} className="text-zinc-700 hidden md:block" />
+              {order.id.toUpperCase()}
             </h1>
-            <div className="flex items-center gap-4 text-zinc-500 text-sm tracking-widest uppercase font-bold">
-              <span className="flex items-center gap-1">
-                <Clock size={14} />{" "}
-                {new Date(order.createdAt).toLocaleDateString()}
+            <div className="flex items-center gap-4 text-zinc-500 text-xs font-bold tracking-widest uppercase">
+              <span className="flex items-center gap-2">
+                <Calendar size={14} />{" "}
+                {new Date(order.createdAt).toLocaleString()}
               </span>
+              <span>•</span>
               <span
-                className={`px-3 py-1 text-xs rounded-none border ${
-                  order.status === "DELIVERED" || order.status === "COMPLETED"
+                className={`px-2 py-0.5 border ${
+                  order.status === "COMPLETED" || order.status === "DELIVERED"
                     ? "border-green-500 text-green-500"
                     : order.status === "SHIPPED"
                       ? "border-blue-500 text-blue-500"
@@ -153,73 +125,67 @@ export default function OrderDetailsPage() {
               </span>
             </div>
           </div>
-
-          <div className="flex gap-4">
-            <button
-              onClick={() => handleStatusUpdate("SHIPPED")}
-              disabled={
-                isUpdating ||
-                order.status === "SHIPPED" ||
-                order.status === "DELIVERED"
-              }
-              className="px-6 py-3 border border-zinc-700 hover:border-blue-500 text-sm font-bold tracking-widest uppercase transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {isUpdating ? "UPDATING..." : "MARK AS SHIPPED"}
-            </button>
-            <button
-              onClick={() => handleStatusUpdate("DELIVERED")}
-              disabled={isUpdating || order.status === "DELIVERED"}
-              className="px-6 py-3 bg-white text-black text-sm font-bold tracking-widest uppercase transition-colors hover:bg-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed"
-            >
-              {isUpdating ? "UPDATING..." : "MARK COMPLETED"}
-            </button>
+          <div className="text-right">
+            <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mb-1">
+              Total Authorized
+            </p>
+            <p className="text-3xl font-black tracking-widest">
+              €{order.totalAmount.toFixed(2)}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <div className="border border-zinc-900 bg-[#050505] p-8">
-              <h3 className="text-xl font-bold tracking-widest uppercase mb-8 flex items-center gap-3">
-                <Package size={20} /> ITEMS ({order.items.length})
-              </h3>
+            <div className="bg-[#050505] border border-zinc-900 p-8">
+              <h2 className="flex items-center gap-3 text-sm font-black tracking-widest uppercase border-b border-zinc-900 pb-4 mb-6">
+                <Package size={18} /> Order Manifest
+              </h2>
+
               <div className="space-y-6">
                 {order.items.map((item, idx) => {
-                  // FIX: Prioritize priceAtBuy to align with backend schema
-                  const currentPrice =
-                    (item as any).priceAtBuy ||
-                    item.price ||
-                    item.product?.price ||
-                    0;
+                  const currentPrice = item.priceAtBuy || 0;
+
                   return (
                     <div
                       key={idx}
-                      className="flex gap-6 items-center border-b border-zinc-900 pb-6 last:border-0 last:pb-0"
+                      className="flex gap-6 items-center border border-zinc-900 p-4 hover:border-zinc-700 transition-colors bg-black"
                     >
-                      <div className="w-20 h-24 bg-zinc-900 border border-zinc-800 shrink-0">
-                        {item.product?.image && (
+                      <div className="w-20 h-28 bg-zinc-900 border border-zinc-800 shrink-0 relative overflow-hidden">
+                        {item.productImage ? (
                           <img
-                            src={item.product.image}
+                            src={item.productImage}
+                            alt={item.productTitle}
                             className="w-full h-full object-cover grayscale contrast-125"
-                            alt=""
                           />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-700 font-bold uppercase text-[10px]">
+                            IMG
+                          </div>
                         )}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-bold tracking-widest uppercase text-sm">
-                          {item.product?.title || "Unknown Product"}
+                        <p className="text-zinc-600 text-[10px] font-bold tracking-widest uppercase mb-1">
+                          {item.productId}
+                        </p>
+                        <h4 className="font-bold tracking-widest uppercase text-sm mb-2">
+                          {item.productTitle || "Unknown Product"}
                         </h4>
-                        <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
-                          SIZE: {item.size}
-                        </p>
-                        <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase">
-                          QTY: {item.quantity}
-                        </p>
+                        <div className="flex gap-4">
+                          <span className="px-2 py-1 bg-white text-black text-[10px] font-black uppercase">
+                            SIZE: {item.size}
+                          </span>
+                          <span className="px-2 py-1 bg-zinc-900 text-zinc-400 text-[10px] font-black uppercase">
+                            QTY: {item.quantity}
+                          </span>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold tracking-widest uppercase text-sm">
+                        {/* FIX: NaN resolved by utilizing the exact priceAtBuy numerical value */}
+                        <p className="font-black tracking-widest text-lg">
                           €{(currentPrice * item.quantity).toFixed(2)}
                         </p>
-                        <p className="text-zinc-600 text-[10px] tracking-widest uppercase">
+                        <p className="text-zinc-600 text-[10px] tracking-widest uppercase mt-1">
                           €{currentPrice.toFixed(2)} ea
                         </p>
                       </div>
@@ -227,89 +193,112 @@ export default function OrderDetailsPage() {
                   );
                 })}
               </div>
-            </div>
 
-            <div className="border border-zinc-900 bg-[#050505] p-8">
-              <h3 className="text-xl font-bold tracking-widest uppercase mb-6">
-                ORDER NOTES
-              </h3>
-              <p className="text-zinc-400 text-sm tracking-wide leading-relaxed italic">
-                {order.notes || "No notes provided."}
-              </p>
+              <div className="mt-8 pt-6 border-t border-zinc-900 flex flex-col gap-2 text-sm font-bold tracking-widest uppercase text-zinc-500">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span className="text-white">€{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span className="text-white">€{shippingCost.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between mt-4 pt-4 border-t border-zinc-900 text-xl font-black text-white">
+                  <span>TOTAL</span>
+                  <span>€{order.totalAmount.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="space-y-8">
-            <div className="border border-zinc-900 bg-[#050505] p-8">
-              <h3 className="text-lg font-bold tracking-widest uppercase mb-6 flex items-center gap-2">
-                CUSTOMER
-              </h3>
-              <div className="space-y-4">
-                <p className="font-bold tracking-widest uppercase">
-                  {order.customerName}
-                </p>
-                <div className="flex items-center gap-2 text-zinc-400 text-sm tracking-wider">
-                  <Mail size={14} /> {order.customerEmail}
-                </div>
-                <div className="flex items-center gap-2 text-zinc-400 text-sm tracking-wider">
-                  <Phone size={14} /> {order.customerPhone}
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-zinc-900 bg-[#050505] p-8">
-              <h3 className="text-lg font-bold tracking-widest uppercase mb-6 flex items-center gap-2">
-                <Truck size={20} /> SHIPPING
-              </h3>
-              <div className="space-y-4 text-sm">
-                <div className="flex justify-between tracking-widest uppercase">
-                  <span className="text-zinc-500">METHOD</span>
-                  <span className="font-bold">{order.deliveryMethod}</span>
-                </div>
-                <div className="flex justify-between tracking-widest uppercase">
-                  <span className="text-zinc-500">CITY</span>
-                  <span className="font-bold">{order.city || "-"}</span>
-                </div>
-                <div className="pt-4 border-t border-zinc-900">
-                  <span className="text-zinc-500 block text-xs tracking-widest uppercase mb-2">
-                    ADDRESS / OFFICE
-                  </span>
-                  <p className="text-zinc-300 font-bold leading-relaxed">
-                    {order.addressOrOffice || "No address provided"}
+            <div className="bg-[#050505] border border-zinc-900 p-8">
+              <h2 className="flex items-center gap-3 text-sm font-black tracking-widest uppercase border-b border-zinc-900 pb-4 mb-6">
+                <User size={18} /> Customer Data
+              </h2>
+              <div className="space-y-6 text-sm font-bold tracking-wider">
+                <div>
+                  <p className="text-zinc-600 text-[10px] uppercase mb-1">
+                    Full Name
                   </p>
+                  <p className="text-white">{order.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-zinc-600 text-[10px] uppercase mb-1">
+                    Email Address
+                  </p>
+                  <a
+                    href={`mailto:${order.customerEmail}`}
+                    className="text-white border-b border-zinc-700 hover:border-white transition-colors"
+                  >
+                    {order.customerEmail}
+                  </a>
+                </div>
+                <div>
+                  <p className="text-zinc-600 text-[10px] uppercase mb-1">
+                    Phone
+                  </p>
+                  <p className="text-white">{order.customerPhone}</p>
                 </div>
               </div>
             </div>
 
-            <div className="border border-zinc-900 bg-white text-black p-8">
-              <h3
-                className="text-lg font-black tracking-widest uppercase mb-6 border-b border-black/10 pb-4"
-                style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
-              >
-                PAYMENT SUMMARY
-              </h3>
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-xs font-bold tracking-widest uppercase">
-                  <span>SUBTOTAL</span>
-                  <span>€{subtotal.toFixed(2)}</span>
+            <div className="bg-[#050505] border border-zinc-900 p-8">
+              <h2 className="flex items-center gap-3 text-sm font-black tracking-widest uppercase border-b border-zinc-900 pb-4 mb-6">
+                <MapPin size={18} /> Logistics
+              </h2>
+              <div className="space-y-6 text-sm font-bold tracking-wider">
+                <div>
+                  <p className="text-zinc-600 text-[10px] uppercase mb-2">
+                    Method
+                  </p>
+                  <span className="px-3 py-1 bg-white text-black text-[10px] uppercase inline-flex items-center gap-2">
+                    <Truck size={12} /> {order.deliveryMethod}
+                  </span>
                 </div>
-                <div className="flex justify-between text-xs font-bold tracking-widest uppercase">
-                  <span>SHIPPING</span>
-                  <span>€{shippingCost.toFixed(2)}</span>
-                </div>
-              </div>
-              <div
-                className="flex justify-between text-2xl font-black tracking-widest uppercase border-t border-black/10 pt-4"
-                style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
-              >
-                <span>TOTAL</span>
-                <span>€{order.totalAmount.toFixed(2)}</span>
+
+                {order.deliveryMethod !== "IN_STORE" ? (
+                  <div>
+                    <p className="text-zinc-600 text-[10px] uppercase mb-2">
+                      Destination
+                    </p>
+                    <div className="bg-black p-4 border border-zinc-800 text-zinc-300 leading-relaxed">
+                      <p>{order.customerName}</p>
+                      <p>{order.addressOrOffice || order.address}</p>
+                      <p>
+                        {order.city} {order.zipCode}
+                      </p>
+                      <p className="text-white mt-2">
+                        {order.country || "Bulgaria"}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-zinc-600 text-[10px] uppercase mb-2">
+                      Destination
+                    </p>
+                    <div className="bg-black p-4 border border-zinc-800 text-yellow-500 leading-relaxed">
+                      STORE PICKUP PROTOCOL
+                    </div>
+                  </div>
+                )}
+
+                {order.notes && (
+                  <div>
+                    <p className="text-zinc-600 text-[10px] uppercase mb-2">
+                      Customer Notes
+                    </p>
+                    <div className="bg-zinc-900 p-4 border-l-2 border-white text-zinc-300 italic text-xs">
+                      "{order.notes}"
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
-// todo sold out logic and the statuses and all that
