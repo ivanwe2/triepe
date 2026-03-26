@@ -11,7 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useCartStore } from "@/store/useCartStore";
-import { createOrder } from "@/lib/api";
+import { createOrder, CreateOrderPayload, OrderItem } from "@/lib/api";
 import {
   SHIPPING_METHODS,
   ShippingMethodId,
@@ -88,21 +88,22 @@ export default function CheckoutPage() {
         | "ECONT"
         | "IN_STORE";
 
-      const payload = {
+      // Enforce the payload to strictly match our API interface
+      const payload: CreateOrderPayload = {
         customerName,
         customerEmail,
         customerPhone,
         deliveryMethod: backendCourierMethod,
-        paymentMethod: "CASH_ON_DELIVERY" as const,
+        paymentMethod: "CASH_ON_DELIVERY",
         city,
         // Prepend context to the address string so the admin knows if it's an office or address
         addressOrOffice: `[${selectedShipping.name}] ${addressOrOffice}`,
         notes,
+        // Secure mapping: we intentionally do NOT send price here to prevent tampering
         items: items.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
           size: item.size,
-          price: item.price,
         })),
       };
 
@@ -346,15 +347,12 @@ export default function CheckoutPage() {
               {/* Items */}
               <div className="space-y-6 mb-8 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                 {items.map((item) => (
-                  <div
-                    key={`${item.id}-${item.size}`}
-                    className="flex gap-4"
-                  >
+                  <div key={`${item.id}-${item.size}`} className="flex gap-4">
                     <div className="w-20 h-24 bg-zinc-900 border border-zinc-800 shrink-0 relative overflow-hidden">
                       <img
                         src={item.image}
                         alt={item.title}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full grayscale contrast-125"
                       />
                     </div>
                     <div className="flex flex-col flex-1 justify-center">

@@ -109,7 +109,7 @@ export interface CreateOrderPayload {
   city?: string;
   addressOrOffice?: string;
   notes?: string;
-  items: OrderItem[];
+  items: { productId: string; quantity: number; size: string }[];
 }
 
 // ==========================================
