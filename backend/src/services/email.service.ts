@@ -1,30 +1,35 @@
-import nodemailer from 'nodemailer';
-import * as aws from '@aws-sdk/client-ses';
-import dotenv from 'dotenv';
+import nodemailer from "nodemailer";
+import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses";
+import dotenv from "dotenv";
 
 dotenv.config();
 
-// Securely initialize AWS SES Client
-const ses = new aws.SES({
-  apiVersion: '2010-12-01',
-  region: process.env.AWS_REGION || 'eu-central-1', // Default to your chosen EU region if not set
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
+// Use SESClient explicitly (Standard for AWS SDK v3)
+const sesClient = new SESClient({
+  region: process.env.AWS_REGION || "eu-central-1",
 });
 
-// Create Nodemailer transporter wrapped with SES
+// Create transporter and pass the specific command nodemailer needs
 const transporter = nodemailer.createTransport({
-  SES: { ses, aws },
-});
+  SES: {
+    ses: sesClient,
+    aws: { SendRawEmailCommand },
+  },
+} as any); // Cast to any to prevent @types/nodemailer from throwing false errors
 
-const SENDER_EMAIL = process.env.ADMIN_EMAIL || 'support@triepe.com';
+// Senders
+const SENDER_EMAIL = process.env.SENDER_EMAIL || "noreply@triepe.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@triepe.com";
 
 /**
  * Dispatches an order confirmation email to the customer
  */
-export const sendOrderConfirmationToCustomer = async (email: string, name: string, orderId: string, total: number) => {
+export const sendOrderConfirmationToCustomer = async (
+  email: string,
+  name: string,
+  orderId: string,
+  total: number,
+) => {
   try {
     const htmlBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #000; color: #fff; padding: 40px; text-transform: uppercase;">
@@ -48,44 +53,31 @@ export const sendOrderConfirmationToCustomer = async (email: string, name: strin
       html: htmlBody,
     });
 
-    console.log(`[Email Service] Confirmation sent successfully to ${email}`);
+    console.log(`[Email Service] Confirmation sent to ${email}`);
   } catch (error) {
     console.error(`[Email Service] Failed to send email to ${email}:`, error);
   }
 };
 
 /**
- * Dispatches an alert to the Admin securely
+ * Dispatches a minimal alert to the Admin
  */
-export const sendNewOrderAlertToAdmin = async (orderId: string, method: string) => {
+export const sendNewOrderAlertToAdmin = async (
+  orderId: string,
+  method: string,
+) => {
   try {
-    const adminEmail = process.env.ADMIN_EMAIL;
-    if (!adminEmail) {
-      console.warn('[Email Service] ADMIN_EMAIL not set. Skipping admin notification.');
-      return;
-    }
+    if (!process.env.ADMIN_EMAIL) return;
 
-    const adminUrl = `https://triepe.com/admin/orders/${orderId}`;
-    
-    const htmlBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f4f4f5; color: #000; padding: 40px;">
-        <h1 style="font-size: 20px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 30px;">Alert: New Order Received</h1>
-        <p>A new order has been placed on Triepe via <strong>${method}</strong>.</p>
-        <p>Order ID: <strong>${orderId}</strong></p>
-        <a href="${adminUrl}" style="display: inline-block; background: #000; color: #fff; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-top: 20px;">
-          View in Dashboard
-        </a>
-      </div>
-    `;
+    // Extremely simple text-based email for the admin to prevent clutter
+    const textBody = `NEW ORDER RECEIVED.\nID: ${orderId}\nMethod: ${method}\n\nView Dashboard: https://triepe.com/admin/orders/${orderId}`;
 
     await transporter.sendMail({
       from: `"TRIEPE SYSTEM" <${SENDER_EMAIL}>`,
-      to: adminEmail,
-      subject: `[ACTION REQUIRED] New Order Received #${orderId.slice(0, 8)}`,
-      html: htmlBody,
+      to: ADMIN_EMAIL,
+      subject: `[NEW ORDER] #${orderId.slice(0, 8)}`,
+      text: textBody,
     });
-
-    console.log(`[Email Service] Admin notification sent successfully.`);
   } catch (error) {
     console.error(`[Email Service] Failed to send admin notification:`, error);
   }

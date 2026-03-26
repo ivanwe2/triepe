@@ -25,6 +25,7 @@ import {
   Order,
 } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner"; // <-- Import toast
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -32,8 +33,6 @@ export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // FIX: Added Mobile Sidebar State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -44,7 +43,6 @@ export default function AdminDashboard() {
           getAdminOrders(),
         ]);
         setProducts(pData);
-        // Sort orders by newest first
         setOrders(
           oData.sort(
             (a, b) =>
@@ -52,7 +50,7 @@ export default function AdminDashboard() {
           ),
         );
       } catch (err) {
-        console.error("Auth expired or fetch failed");
+        toast.error("Session expired. Please log in again."); // <-- Replaced alert/console
         router.push("/admin/login");
       } finally {
         setIsLoading(false);
@@ -66,17 +64,22 @@ export default function AdminDashboard() {
     try {
       await deleteAdminProduct(id);
       setProducts(products.filter((p) => p.id !== id));
+      toast.success("Product deleted successfully"); // <-- Added success toast
     } catch (err: any) {
-      alert(err.message);
+      toast.error(err.message || "Failed to delete product"); // <-- Replaced alert
     }
   };
 
   const handleLogout = async () => {
-    await logoutAdmin();
-    router.push("/admin/login");
+    try {
+      await logoutAdmin();
+      toast.success("Logged out successfully");
+      router.push("/admin/login");
+    } catch (err) {
+      toast.error("Failed to log out");
+    }
   };
 
-  // Stats calculation
   const totalRevenue = orders.reduce((acc, o) => acc + o.totalAmount, 0);
   const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
 
@@ -89,7 +92,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-black text-white selection:bg-gray-400 selection:text-black flex flex-col">
-      {/* MOBILE HEADER (Visible only on small screens) */}
+      {/* MOBILE HEADER */}
       <header className="lg:hidden flex items-center justify-between p-6 border-b border-zinc-900 bg-[#050505] sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="Triepe" className="h-6 object-contain" />
@@ -110,7 +113,7 @@ export default function AdminDashboard() {
         />
       )}
 
-      {/* SIDEBAR (Desktop Fixed, Mobile Drawer) */}
+      {/* SIDEBAR */}
       <aside
         className={`fixed left-0 top-0 h-full w-64 bg-[#050505] border-r border-zinc-900 flex flex-col z-[70] transition-transform duration-300 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
@@ -121,7 +124,6 @@ export default function AdminDashboard() {
               ADMIN PANEL v0.2
             </p>
           </div>
-          {/* Close button for mobile */}
           <button
             onClick={() => setIsSidebarOpen(false)}
             className="lg:hidden text-zinc-500 hover:text-white"
@@ -224,7 +226,6 @@ export default function AdminDashboard() {
                 RECENT ORDERS
               </h2>
             </div>
-
             <div className="border border-zinc-900 bg-[#050505] overflow-x-auto custom-scrollbar">
               <table className="w-full text-left border-collapse min-w-[800px]">
                 <thead>
@@ -307,7 +308,6 @@ export default function AdminDashboard() {
                 <Plus size={18} /> New Drop
               </Link>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {products.map((product) => (
                 <div
