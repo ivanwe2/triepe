@@ -31,11 +31,11 @@ export default function NewProductPage() {
 
   const [mediaFiles, setMediaFiles] = useState<MediaPreview[]>([]);
   const [variants, setVariants] = useState([
+    { size: "XS", stock: 0 },
     { size: "S", stock: 0 },
     { size: "M", stock: 0 },
     { size: "L", stock: 0 },
     { size: "XL", stock: 0 },
-    { size: "XXL", stock: 0 },
   ]);
 
   useEffect(() => {
@@ -60,6 +60,20 @@ export default function NewProductPage() {
       setId("");
     }
   }, [title]);
+
+  useEffect(() => {
+    if (category === "OTHER") {
+      setVariants([{ size: "ONE SIZE", stock: 0 }]);
+    } else {
+      setVariants([
+        { size: "XS", stock: 0 },
+        { size: "S", stock: 0 },
+        { size: "M", stock: 0 },
+        { size: "L", stock: 0 },
+        { size: "XL", stock: 0 },
+      ]);
+    }
+  }, [category]);
 
   const handleMediaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {

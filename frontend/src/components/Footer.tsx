@@ -29,12 +29,6 @@ export default function Footer() {
               href="/store"
               className="text-zinc-400 hover:text-white text-sm tracking-widest uppercase transition-colors"
             >
-              Collection 032
-            </Link>
-            <Link
-              href="/store"
-              className="text-zinc-400 hover:text-white text-sm tracking-widest uppercase transition-colors"
-            >
               All Products
             </Link>
             <Link
@@ -72,6 +66,12 @@ export default function Footer() {
               className="text-zinc-400 hover:text-white text-sm tracking-widest uppercase transition-colors"
             >
               Contact
+            </Link>
+            <Link
+              href="/privacy"
+              className="text-zinc-400 hover:text-white text-sm tracking-widest uppercase transition-colors"
+            >
+              Privacy Policy
             </Link>
           </div>
         </div>

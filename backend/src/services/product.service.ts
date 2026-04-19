@@ -75,19 +75,7 @@ export const updateProduct = async (
   },
 ) => {
   return await prisma.$transaction(async (tx) => {
-    // 1. Update core product details
-    const updatedProduct = await tx.product.update({
-      where: { id },
-      data: {
-        title: data.title,
-        description: data.description,
-        price: data.price,
-        category: data.category,
-        status: data.status,
-      } as any,
-    });
-
-    // 2. Update stock if variants were provided
+    // 1. Update stock if variants were provided
     if (data.variants) {
       for (const v of data.variants) {
         if (v.id) {
@@ -99,7 +87,32 @@ export const updateProduct = async (
       }
     }
 
-    return updatedProduct;
+    // 2. Derive status from actual stock totals so SOLD OUT clears automatically
+    const totalStock = data.variants
+      ? data.variants.reduce((sum, v) => sum + v.stock, 0)
+      : null;
+
+    let resolvedStatus: string | null;
+    if (totalStock !== null && totalStock === 0) {
+      resolvedStatus = "SOLD OUT";
+    } else if (totalStock !== null && totalStock > 0 && data.status === "SOLD OUT") {
+      // Stock was added — clear the SOLD OUT badge
+      resolvedStatus = null;
+    } else {
+      resolvedStatus = data.status ?? null;
+    }
+
+    // 3. Update core product details with the resolved status
+    return await tx.product.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        price: data.price,
+        category: data.category,
+        status: resolvedStatus,
+      } as any,
+    });
   });
 };
 

@@ -1,6 +1,12 @@
 import { prisma } from '../config';
 import { DeliveryMethod, PaymentMethod, OrderStatus } from '@prisma/client';
-import { sendOrderConfirmationToCustomer, sendNewOrderAlertToAdmin } from './email.service';
+import {
+  sendOrderConfirmationToCustomer,
+  sendNewOrderAlertToAdmin,
+  sendOrderConfirmedToCustomer,
+  sendOrderShippedToCustomer,
+  sendOrderCompletedToCustomer,
+} from './email.service';
 
 export interface CreateOrderPayload {
   customerName: string;
@@ -14,6 +20,7 @@ export interface CreateOrderPayload {
   address?: string;
   addressOrOffice?: string;
   notes?: string;
+  privacyConsentAt: string;
   items: { productId: string; quantity: number; size: string }[];
 }
 
@@ -113,6 +120,7 @@ export const createOrder = async (data: CreateOrderPayload) => {
         address: data.address || null,
         addressOrOffice: data.addressOrOffice || null,
         notes: data.notes || null,
+        privacyConsentAt: new Date(data.privacyConsentAt),
         totalAmount,
         items: {
           create: orderItemsData
@@ -162,8 +170,18 @@ export const getOrderById = async (id: string) => {
 };
 
 export const updateOrderStatus = async (id: string, status: OrderStatus) => {
-  return await prisma.order.update({
-    where: { id },
-    data: { status }
-  });
+  const existing = await prisma.order.findUnique({ where: { id } });
+  if (!existing) throw new Error('Order not found');
+
+  const updated = await prisma.order.update({ where: { id }, data: { status } });
+
+  if (status === OrderStatus.CONFIRMED) {
+    sendOrderConfirmedToCustomer(existing.customerEmail, existing.customerName, id).catch(console.error);
+  } else if (status === OrderStatus.SHIPPED) {
+    sendOrderShippedToCustomer(existing.customerEmail, existing.customerName, id, existing.deliveryMethod).catch(console.error);
+  } else if (status === OrderStatus.COMPLETED) {
+    sendOrderCompletedToCustomer(existing.customerEmail, existing.customerName, id).catch(console.error);
+  }
+
+  return updated;
 };

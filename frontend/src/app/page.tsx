@@ -89,7 +89,7 @@ export default async function LandingPage() {
                         fill
                         sizes="(max-width: 768px) 100vw, 33vw"
                         className={`object-cover transition-transform duration-700 group-hover:scale-105 group-active:scale-105 ${
-                          product.status === 'SOLD OUT' ? 'grayscale opacity-50' : 'grayscale contrast-125'
+                          product.status === 'SOLD OUT' ? 'grayscale opacity-50' : ''
                         }`}
                       />
                       

@@ -38,8 +38,8 @@ export default function StoreClient({
             className="text-6xl md:text-8xl tracking-tighter font-black uppercase text-zinc-100 leading-none"
             style={{ fontFamily: "var(--font-koulen), Impact, sans-serif" }}
           >
-            COLLECTION <br />
-            <span className="text-zinc-600">032</span>
+            ALL <br />
+            <span className="text-zinc-600">PRODUCTS</span>
           </h1>
           <p className="mt-4 text-zinc-400 max-w-md text-sm md:text-base tracking-wide uppercase">
             The inaugural drop. Redefining conventional streetwear.
@@ -132,9 +132,7 @@ export default function StoreClient({
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className={`object-cover transition-transform duration-700 group-hover:scale-105 ${
-                  product.status === "SOLD OUT"
-                    ? "grayscale opacity-50"
-                    : "grayscale contrast-125"
+                  product.status === "SOLD OUT" ? "grayscale opacity-50" : ""
                 }`}
               />
 
