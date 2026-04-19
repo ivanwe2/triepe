@@ -76,9 +76,10 @@ model Order {
   addressOrOffice String?  // (Kept for backwards compatibility with Econt/Speedy offices)
   notes           String?  @db.Text
   
-  status          OrderStatus @default(PENDING)
-  totalAmount     Float
-  createdAt       DateTime @default(now())
+  status           OrderStatus @default(PENDING)
+  totalAmount      Float
+  privacyConsentAt DateTime?
+  createdAt        DateTime @default(now())
   
   items           OrderItem[]
 }
@@ -99,6 +100,7 @@ enum OrderStatus {
   CONFIRMED
   SHIPPED
   DELIVERED
+  COMPLETED
   CANCELLED
 }
 
@@ -106,8 +108,8 @@ model OrderItem {
   id           String  @id @default(uuid())
   orderId      String
   order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId    String
-  product      Product @relation(fields: [productId], references: [id])
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   
   quantity     Int
   size         String  

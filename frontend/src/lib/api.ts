@@ -109,6 +109,7 @@ export interface CreateOrderPayload {
   city?: string;
   addressOrOffice?: string;
   notes?: string;
+  privacyConsentAt: string;
   items: { productId: string; quantity: number; size: string }[];
 }
 
@@ -171,6 +172,22 @@ export async function createOrder(
 // ADMIN (PROTECTED) ENDPOINTS
 // ==========================================
 
+const ADMIN_TOKEN_KEY = "triepe_admin_token";
+
+function getStoredToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ADMIN_TOKEN_KEY);
+}
+
+function adminHeaders(extra?: Record<string, string>): Record<string, string> {
+  const token = getStoredToken();
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...extra,
+  };
+}
+
 export async function loginAdmin(credentials: {
   email: string;
   password: string;
@@ -184,14 +201,24 @@ export async function loginAdmin(credentials: {
 
   const data = await res.json();
   if (!res.ok) throw new Error(data.message || "Login failed");
+
+  if (data.data?.token && typeof window !== "undefined") {
+    localStorage.setItem(ADMIN_TOKEN_KEY, data.data.token);
+  }
+
   return data.data;
 }
 
 export async function logoutAdmin() {
   const res = await fetch(`${getApiUrl()}/auth/logout`, {
     method: "POST",
+    headers: adminHeaders(),
     credentials: "include",
   });
+
+  if (typeof window !== "undefined") {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+  }
 
   if (!res.ok) throw new Error("Logout failed");
   return true;
@@ -199,6 +226,7 @@ export async function logoutAdmin() {
 
 export async function getAdminOrders(): Promise<Order[]> {
   const res = await fetch(`${getApiUrl()}/orders`, {
+    headers: adminHeaders(),
     credentials: "include",
   });
 
@@ -207,9 +235,9 @@ export async function getAdminOrders(): Promise<Order[]> {
   return data.data;
 }
 
-// FIX: Added the missing getAdminOrderById function
 export async function getAdminOrderById(id: string): Promise<Order> {
   const res = await fetch(`${getApiUrl()}/orders/${id}`, {
+    headers: adminHeaders(),
     credentials: "include",
   });
 
@@ -223,7 +251,7 @@ export async function createAdminProduct(
 ): Promise<Product> {
   const res = await fetch(`${getApiUrl()}/products`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders(),
     credentials: "include",
     body: JSON.stringify(productPayload),
   });
@@ -239,7 +267,7 @@ export async function updateAdminProduct(
 ): Promise<Product> {
   const res = await fetch(`${getApiUrl()}/products/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders(),
     credentials: "include",
     body: JSON.stringify(payload),
   });
@@ -252,6 +280,7 @@ export async function updateAdminProduct(
 export async function deleteAdminProduct(id: string) {
   const res = await fetch(`${getApiUrl()}/products/${id}`, {
     method: "DELETE",
+    headers: adminHeaders(),
     credentials: "include",
   });
   if (!res.ok) {
@@ -261,11 +290,10 @@ export async function deleteAdminProduct(id: string) {
   return true;
 }
 
-// FIX: This matches your existing naming
 export async function updateAdminOrderStatus(id: string, status: string) {
   const res = await fetch(`${getApiUrl()}/orders/${id}/status`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: adminHeaders(),
     credentials: "include",
     body: JSON.stringify({ status }),
   });
@@ -280,6 +308,7 @@ export async function updateAdminOrderStatus(id: string, status: string) {
 export async function verifyAdminSession() {
   const res = await fetch(`${getApiUrl()}/auth/me`, {
     method: "GET",
+    headers: adminHeaders(),
     credentials: "include",
   });
 

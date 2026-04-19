@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useCartStore } from "@/store/useCartStore";
 import { Product } from "@/lib/api";
 
-const STANDARD_SIZES = ["S", "M", "L", "XL", "XXL"];
+const STANDARD_SIZES = ["XS", "S", "M", "L", "XL"];
 
 export default function AddToCartSection({ product }: { product: Product }) {
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
@@ -45,6 +46,12 @@ export default function AddToCartSection({ product }: { product: Product }) {
     !selectedSize ||
     (product.variants?.find((v) => v.size === selectedSize)?.stock || 0) <= 0;
 
+  const displaySizes =
+    product.variants && product.variants.length > 0
+      ? product.variants.map((v) => v.size)
+      : STANDARD_SIZES;
+  const isOneSize = displaySizes.length === 1;
+
   return (
     <>
       {/* Size Selector */}
@@ -53,16 +60,18 @@ export default function AddToCartSection({ product }: { product: Product }) {
           <span className="text-sm font-bold tracking-widest uppercase text-zinc-500">
             Select Size
           </span>
-          <button className="text-xs tracking-widest uppercase border-b border-zinc-600 text-zinc-400 hover:text-white pb-[2px]">
+          <Link
+            href="/size-guide"
+            className="text-xs tracking-widest uppercase border-b border-zinc-600 text-zinc-400 hover:text-white pb-[2px]"
+          >
             Size Guide
-          </button>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-5 gap-3">
-          {STANDARD_SIZES.map((size) => {
-            // FIX: Lookup variant stock to individually disable sizes
+        <div className={isOneSize ? "w-full" : "grid grid-cols-5 gap-3"}>
+          {displaySizes.map((size) => {
             const variant = product.variants?.find((v) => v.size === size);
-            const isVariantSoldOut = variant ? variant.stock <= 0 : true; // Disabled if variant missing or stock 0
+            const isVariantSoldOut = variant ? variant.stock <= 0 : true;
             const isDisabled = isGlobalSoldOut || isVariantSoldOut;
 
             return (
@@ -70,7 +79,7 @@ export default function AddToCartSection({ product }: { product: Product }) {
                 key={size}
                 onClick={() => setSelectedSize(size)}
                 disabled={isDisabled}
-                className={`py-4 text-center font-bold tracking-wider transition-all duration-200 border relative ${
+                className={`py-4 text-center font-bold tracking-wider transition-all duration-200 border relative ${isOneSize ? "w-full" : ""} ${
                   selectedSize === size
                     ? "bg-white text-black border-white"
                     : "bg-transparent text-white border-zinc-700 hover:border-zinc-400 disabled:hover:border-zinc-700"

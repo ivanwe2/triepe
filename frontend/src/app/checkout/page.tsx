@@ -35,6 +35,7 @@ export default function CheckoutPage() {
   const [shippingMethodId, setShippingMethodId] =
     useState<ShippingMethodId>("SPEEDY_OFFICE");
 
+  const [privacyConsent, setPrivacyConsent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -99,6 +100,7 @@ export default function CheckoutPage() {
         // Prepend context to the address string so the admin knows if it's an office or address
         addressOrOffice: `[${selectedShipping.name}] ${addressOrOffice}`,
         notes,
+        privacyConsentAt: new Date().toISOString(),
         // Secure mapping: we intentionally do NOT send price here to prevent tampering
         items: items.map((item) => ({
           productId: item.id,
@@ -331,6 +333,34 @@ export default function CheckoutPage() {
                   className="w-full bg-black border border-zinc-800 p-4 text-white focus:border-white focus:outline-none transition-colors tracking-wider text-sm resize-none"
                 />
               </div>
+
+              {/* PRIVACY CONSENT */}
+              <div className="flex items-start gap-3">
+                <input
+                  id="privacy-consent"
+                  type="checkbox"
+                  required
+                  checked={privacyConsent}
+                  onChange={(e) => setPrivacyConsent(e.target.checked)}
+                  className="mt-1 w-4 h-4 shrink-0 accent-white bg-black border-zinc-700 cursor-pointer"
+                />
+                <label
+                  htmlFor="privacy-consent"
+                  className="text-xs text-zinc-400 tracking-wide leading-relaxed cursor-pointer"
+                >
+                  I have read and agree to the{" "}
+                  <Link
+                    href="/privacy"
+                    target="_blank"
+                    className="text-white underline underline-offset-2 hover:text-zinc-300 transition-colors"
+                  >
+                    Privacy Policy
+                  </Link>
+                  . I consent to Triepe processing my personal data (name,
+                  email, phone, delivery address) for the purpose of fulfilling
+                  this order, in accordance with GDPR (Regulation 2016/679).
+                </label>
+              </div>
             </form>
           </div>
 
@@ -400,7 +430,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 form="checkout-form"
-                disabled={isLoading}
+                disabled={isLoading || !privacyConsent}
                 className="w-full mt-10 py-5 bg-white text-black font-black tracking-widest text-lg uppercase hover:bg-zinc-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
               >
                 {isLoading ? (

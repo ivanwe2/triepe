@@ -22,6 +22,9 @@ export default function OrderDetailsPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+
+  const EMAIL_STATUSES = ["CONFIRMED", "SHIPPED", "COMPLETED"];
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -38,7 +41,14 @@ export default function OrderDetailsPage() {
     fetchOrder();
   }, [id, router]);
 
-  const handleStatusChange = async (newStatus: string) => {
+  const initiateStatusChange = (newStatus: string) => {
+    setPendingStatus(newStatus);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!pendingStatus) return;
+    const newStatus = pendingStatus;
+    setPendingStatus(null);
     setIsUpdating(true);
     const toastId = toast.loading(`Updating order status to ${newStatus}...`);
     try {
@@ -51,6 +61,8 @@ export default function OrderDetailsPage() {
       setIsUpdating(false);
     }
   };
+
+  const cancelStatusChange = () => setPendingStatus(null);
 
   if (isLoading || !order) {
     return (
@@ -80,10 +92,10 @@ export default function OrderDetailsPage() {
           </Link>
 
           <div className="flex flex-wrap gap-2 bg-[#050505] p-2 border border-zinc-900">
-            {["PENDING", "SHIPPED", "DELIVERED", "CANCELLED"].map((status) => (
+            {["PENDING", "CONFIRMED", "SHIPPED", "COMPLETED", "CANCELLED"].map((status) => (
               <button
                 key={status}
-                onClick={() => handleStatusChange(status)}
+                onClick={() => initiateStatusChange(status)}
                 disabled={isUpdating || order.status === status}
                 className={`px-6 py-2 text-[10px] font-black tracking-widest uppercase transition-all ${
                   order.status === status
@@ -114,11 +126,15 @@ export default function OrderDetailsPage() {
               <span>•</span>
               <span
                 className={`px-2 py-0.5 border ${
-                  order.status === "COMPLETED" || order.status === "DELIVERED"
+                  order.status === "COMPLETED"
                     ? "border-green-500 text-green-500"
                     : order.status === "SHIPPED"
                       ? "border-blue-500 text-blue-500"
-                      : "border-yellow-500 text-yellow-500"
+                      : order.status === "CONFIRMED"
+                        ? "border-indigo-500 text-indigo-500"
+                        : order.status === "CANCELLED"
+                          ? "border-red-500 text-red-500"
+                          : "border-yellow-500 text-yellow-500"
                 }`}
               >
                 {order.status}
@@ -156,7 +172,7 @@ export default function OrderDetailsPage() {
                           <img
                             src={item.productImage}
                             alt={item.productTitle}
-                            className="w-full h-full object-cover grayscale contrast-125"
+                            className="w-full h-full object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-zinc-700 font-bold uppercase text-[10px]">
@@ -299,6 +315,56 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* Status Change Confirmation Modal */}
+      {pendingStatus && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center px-4"
+          onClick={cancelStatusChange}
+        >
+          <div
+            className="bg-[#050505] border border-zinc-800 p-8 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-sm font-black tracking-widest uppercase mb-6 border-b border-zinc-800 pb-4">
+              Confirm Status Change
+            </h2>
+
+            <p className="text-zinc-300 tracking-wide text-sm mb-3">
+              Change order status to{" "}
+              <strong className="text-white uppercase">{pendingStatus}</strong>?
+            </p>
+
+            {EMAIL_STATUSES.includes(pendingStatus) ? (
+              <p className="text-xs tracking-widest text-indigo-400 uppercase mb-6">
+                ✉ An email notification will be sent to{" "}
+                <span className="text-white">{order.customerEmail}</span>.
+              </p>
+            ) : (
+              <p className="text-xs tracking-widest text-zinc-600 uppercase mb-6">
+                No email will be sent for this status.
+              </p>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={confirmStatusChange}
+                disabled={isUpdating}
+                className="flex-1 py-3 bg-white text-black font-black tracking-widest text-xs uppercase hover:bg-zinc-300 transition-colors disabled:opacity-50"
+              >
+                {isUpdating ? "Processing..." : "Confirm"}
+              </button>
+              <button
+                onClick={cancelStatusChange}
+                disabled={isUpdating}
+                className="flex-1 py-3 bg-transparent text-zinc-400 border border-zinc-700 font-black tracking-widest text-xs uppercase hover:border-zinc-400 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

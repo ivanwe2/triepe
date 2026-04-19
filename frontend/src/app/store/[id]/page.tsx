@@ -74,7 +74,7 @@ export default async function ProductDetailsPage({ params }: Props) {
                       loop
                       muted
                       playsInline
-                      className="w-full h-full object-cover grayscale contrast-125"
+                      className={`w-full h-full object-cover ${product.status === "SOLD OUT" ? "grayscale opacity-50" : ""}`}
                     />
                   ) : (
                     <CloudinaryWrapper
@@ -82,7 +82,7 @@ export default async function ProductDetailsPage({ params }: Props) {
                       alt={`${product.title} - View ${index + 1}`}
                       fill
                       sizes="(max-width: 1024px) 100vw, 60vw"
-                      className="object-cover grayscale contrast-125"
+                      className={`object-cover ${product.status === "SOLD OUT" ? "grayscale opacity-50" : ""}`}
                       priority={index === 0}
                     />
                   )}

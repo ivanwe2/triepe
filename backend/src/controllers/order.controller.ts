@@ -10,6 +10,11 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       return;
     }
 
+    if (!orderData.privacyConsentAt) {
+      res.status(400).json({ status: 'error', message: 'Privacy policy consent is required.' });
+      return;
+    }
+
     const newOrder = await orderService.createOrder(orderData);
     res.status(201).json({ status: 'success', data: newOrder });
 

@@ -29,9 +29,9 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 
     res.cookie('jwt', result.token, cookieOptions);
 
-    res.status(200).json({ 
-      status: 'success', 
-      data: { user: result.user } 
+    res.status(200).json({
+      status: 'success',
+      data: { user: result.user, token: result.token }
     });
     
   } catch (error: any) {

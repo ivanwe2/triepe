@@ -1,0 +1,2 @@
+-- Rename DELIVERED to COMPLETED in OrderStatus enum
+ALTER TYPE "OrderStatus" RENAME VALUE 'DELIVERED' TO 'COMPLETED';

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"\\\\\\\\bS\\\\\\\\b.*\\\\\\\\bM\\\\\\\\b.*\\\\\\\\bL\\\\\\\\b.*\\\\\\\\bXL\" /d/Triepe/triepe/frontend/src --include=\"*.tsx\" --include=\"*.ts\" -n)",
+      "Bash(xargs grep *)",
+      "Bash(grep -r \"\\\\\\\\bsize\\\\\\\\b.*\\\\\\\\[\\\\\\\\|S.*M.*L.*XL\" /d/Triepe/triepe/backend/src --include=\"*.ts\" --include=\"*.js\" -n)",
+      "Bash(xargs ls *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

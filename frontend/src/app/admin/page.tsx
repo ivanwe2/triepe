@@ -80,7 +80,9 @@ export default function AdminDashboard() {
     }
   };
 
-  const totalRevenue = orders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const totalRevenue = orders
+    .filter((o) => o.status !== "CANCELLED")
+    .reduce((acc, o) => acc + o.totalAmount, 0);
   const pendingOrders = orders.filter((o) => o.status === "PENDING").length;
 
   if (isLoading)
@@ -261,12 +263,15 @@ export default function AdminDashboard() {
                       <td className="p-4">
                         <span
                           className={`px-2 py-1 text-[10px] border ${
-                            order.status === "COMPLETED" ||
-                            order.status === "DELIVERED"
+                            order.status === "COMPLETED"
                               ? "border-green-500 text-green-500"
                               : order.status === "SHIPPED"
                                 ? "border-blue-500 text-blue-500"
-                                : "border-yellow-500 text-yellow-500"
+                                : order.status === "CONFIRMED"
+                                  ? "border-indigo-500 text-indigo-500"
+                                  : order.status === "CANCELLED"
+                                    ? "border-red-500 text-red-500"
+                                    : "border-yellow-500 text-yellow-500"
                           }`}
                         >
                           {order.status}
@@ -317,7 +322,7 @@ export default function AdminDashboard() {
                   <div className="w-24 h-32 bg-zinc-900 border border-zinc-800 shrink-0 relative overflow-hidden">
                     <img
                       src={product.image}
-                      className="w-full h-full object-cover grayscale contrast-125 transition-transform duration-500 group-hover:scale-110"
+                      className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${product.status === "SOLD OUT" ? "grayscale opacity-50" : ""}`}
                       alt={product.title}
                     />
                   </div>
